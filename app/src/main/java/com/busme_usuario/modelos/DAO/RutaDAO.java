@@ -1,5 +1,7 @@
 package com.busme_usuario.modelos.DAO;
 
+import android.util.Log;
+
 import com.busme_usuario.interfaces.ConsultasBD;
 import com.busme_usuario.modelos.ConexionBD;
 import com.busme_usuario.modelos.DTO.Ruta;
@@ -18,6 +20,7 @@ public class RutaDAO implements ConsultasBD<Ruta> {
     private static final String SQL_UPDATE = "UPDATE rutas SET geom = ? WHERE id_ruta = ?";
     private static final String SQL_READ = "SELECT * FROM rutas WHERE id_ruta = ?";
     private static final String SQL_READALL = "SELECT * FROM rutas";
+    private static final String SQL_READALLID = "SELECT id_ruta FROM rutas";
     private static final ConexionBD conexion = ConexionBD.connect();
 
     @Override
@@ -103,6 +106,25 @@ public class RutaDAO implements ConsultasBD<Ruta> {
             rs = ps.executeQuery();
             while(rs.next()) {
                 rutas.add(new Ruta(rs.getString(1), (PGgeometry) rs.getObject(2)));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            conexion.cerrarConexion();
+        }
+        return rutas;
+    }
+
+    public List<String> obtenerTodasLasIDRutas() {
+        PreparedStatement ps;
+        ResultSet rs;
+        ArrayList<String> rutas = new ArrayList<>();
+        try {
+            ps = conexion.getConexion().prepareStatement(SQL_READALLID);
+            rs = ps.executeQuery();
+            Log.i("DEBUG", SQL_READALL);
+            while(rs.next()) {
+                rutas.add(rs.getString(1));
             }
         } catch (SQLException e) {
             e.printStackTrace();
