@@ -1,4 +1,4 @@
-package com.busme_usuario.POJO;
+package com.busme_usuario.modelos.POJO;
 /*
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;

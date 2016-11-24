@@ -1,6 +1,6 @@
-package com.busme_usuario;
+package com.busme_usuario.interfaces;
 
-import com.busme_usuario.POJO.Example;
+import com.busme_usuario.modelos.POJO.Example;
 import retrofit.Call;
 import retrofit.http.GET;
 import retrofit.http.Query;
