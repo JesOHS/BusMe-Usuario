@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string-array name="rutas_array">
-        <item><u><b><i>Rutas</i></b></u></item>
-        <item>170-B</item>
-        <item>629</item>
-    </string-array>
-</resources>

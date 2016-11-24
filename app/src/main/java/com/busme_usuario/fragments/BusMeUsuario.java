@@ -18,6 +18,8 @@ import android.widget.Spinner;
 
 import com.busme_usuario.R;
 import com.busme_usuario.interfaces.RetrofitMaps;
+import com.busme_usuario.modelos.DAO.RutaDAO;
+import com.busme_usuario.modelos.DTO.Ruta;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.maps.CameraUpdate;
@@ -35,6 +37,7 @@ import android.widget.Toast;
 import com.busme_usuario.modelos.POJO.Example;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import retrofit.Call;
 import retrofit.Callback;
@@ -46,13 +49,13 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
 
     private GoogleMap mMap;
     private Marker marcador;
+    Spinner spinner;
     double latitud = 0.0;
     double longitud = 0.0;
     int count = 0;
     LatLng origin;
     LatLng dest;
     ArrayList<LatLng> MarkerPoints;
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -78,16 +81,16 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
+        // Se obtiene el spinner
+        spinner = (Spinner) findViewById(R.id.spinnerRutas);
+        cargarRutasEnSpinner();
     }
 
 
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
-        Spinner spinner = (Spinner) findViewById(R.id.spinner);
-        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this, R.array.rutas_array, android.R.layout.simple_spinner_item);
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinner.setAdapter(adapter);
+        Spinner spinner = (Spinner) findViewById(R.id.spinnerRutas);
         mMap = googleMap;
         miUbicacion();
 
@@ -293,6 +296,16 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
             return true;
         }
     }
+
+    public void cargarRutasEnSpinner() {
+        RutaDAO rutaDAO = new RutaDAO();
+        List<String> listaRutas = rutaDAO.obtenerTodasLasIDRutas();
+        // Se necesita crear un adaptador
+        ArrayAdapter<String> adaptador = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, listaRutas);
+        // Se le da el estilo con un radio button
+        adaptador.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        // Se vincula el adaptador con el spinner
+        spinner.setAdapter(adaptador);
+    }
+
 }
-
-
