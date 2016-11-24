@@ -35,4 +35,6 @@ dependencies {
     compile 'com.google.code.gson:gson:1.7.2'
     compile 'com.squareup.retrofit:converter-gson:2.0.0-beta2'
     compile 'com.squareup.okhttp:okhttp:2.4.0'
+    //compile 'com.google.android.gms:play-services-maps:10.0.0'
+    compile 'com.google.maps.android:android-maps-utils:0.4+'
 }

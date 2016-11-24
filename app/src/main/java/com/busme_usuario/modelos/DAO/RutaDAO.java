@@ -21,6 +21,7 @@ public class RutaDAO implements ConsultasBD<Ruta> {
     private static final String SQL_READ = "SELECT * FROM rutas WHERE id_ruta = ?";
     private static final String SQL_READALL = "SELECT * FROM rutas";
     private static final String SQL_READALLID = "SELECT id_ruta FROM rutas";
+    private static final String SQL_OBTENERPOLILINEA = "SELECT ST_AsEncodedPolyline(rutas.geom) FROM rutas WHERE (rutas.id_ruta = ?);";
     private static final ConexionBD conexion = ConexionBD.connect();
 
     @Override
@@ -122,7 +123,6 @@ public class RutaDAO implements ConsultasBD<Ruta> {
         try {
             ps = conexion.getConexion().prepareStatement(SQL_READALLID);
             rs = ps.executeQuery();
-            Log.i("DEBUG", SQL_READALL);
             while(rs.next()) {
                 rutas.add(rs.getString(1));
             }
@@ -132,6 +132,25 @@ public class RutaDAO implements ConsultasBD<Ruta> {
             conexion.cerrarConexion();
         }
         return rutas;
+    }
+
+    public String obtenerPolilinea(Object key) {
+        PreparedStatement ps;
+        ResultSet rs;
+        String polilinea = "";
+        try {
+            ps = conexion.getConexion().prepareStatement(SQL_OBTENERPOLILINEA);
+            ps.setString(1, key.toString());
+            rs = ps.executeQuery();
+            while(rs.next()) {
+                polilinea = rs.getString(1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            conexion.cerrarConexion();
+        }
+        return polilinea;
     }
 
 }

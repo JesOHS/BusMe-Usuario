@@ -2,6 +2,7 @@ package com.busme_usuario.fragments;
 
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -12,6 +13,7 @@ import android.os.Bundle;
 import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.Spinner;
@@ -35,6 +37,9 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import android.widget.Toast;
 
 import com.busme_usuario.modelos.POJO.Example;
+import com.google.android.gms.maps.model.Polyline;
+import com.google.android.gms.maps.model.PolylineOptions;
+import com.google.maps.android.PolyUtil;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -45,7 +50,7 @@ import retrofit.GsonConverterFactory;
 import retrofit.Response;
 import retrofit.Retrofit;
 
-public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback {
+public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback, Spinner.OnItemSelectedListener {
 
     private GoogleMap mMap;
     private Marker marcador;
@@ -83,7 +88,9 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
         mapFragment.getMapAsync(this);
         // Se obtiene el spinner
         spinner = (Spinner) findViewById(R.id.spinnerRutas);
+        //spinner.setOnItemClickListener(this);
         cargarRutasEnSpinner();
+        spinner.setOnItemSelectedListener(this);
     }
 
 
@@ -308,4 +315,25 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
         spinner.setAdapter(adaptador);
     }
 
+    @Override
+    public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+        RutaDAO rutaDAO = new RutaDAO();
+        String id_ruta = parent.getItemAtPosition(position).toString();
+        // Obtener la polilinea codificada
+        String encodedPolyline = rutaDAO.obtenerPolilinea(id_ruta);
+        // Crear el objeto para agregar la polilinea
+        PolylineOptions polylineOptions = new PolylineOptions();
+        polylineOptions.color(Color.RED);
+        polylineOptions.width(5);
+        // Agregar la polilinea decodificada con PolyUtil.decode()
+        polylineOptions.addAll(PolyUtil.decode(encodedPolyline));
+        //TODO: Borrar polilineas anteriores sin perjudicar lo demas
+        Polyline line = mMap.addPolyline(polylineOptions);
+        line.setVisible(true);
+    }
+
+    @Override
+    public void onNothingSelected(AdapterView<?> parent) {
+
+    }
 }
