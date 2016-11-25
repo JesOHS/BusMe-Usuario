@@ -1,8 +1,11 @@
 package com.busme_usuario.modelos.DAO;
 
+import android.util.Log;
+
 import com.busme_usuario.interfaces.ConsultasBD;
 import com.busme_usuario.modelos.ConexionBD;
 import com.busme_usuario.modelos.DTO.Camion;
+import com.google.maps.android.geometry.Point;
 
 import org.postgis.PGgeometry;
 
@@ -18,6 +21,7 @@ public class CamionDAO implements ConsultasBD<Camion> {
     private static final String SQL_UPDATE = "UPDATE camiones SET id_ruta = ?, capacidad_max = ?, asientos_disponibles = ?, geom = ? WHERE id_unidad = ?";
     private static final String SQL_READ = "SELECT * FROM camiones WHERE id_unidad = ?";
     private static final String SQL_READALL = "SELECT * FROM camiones";
+    private static final String SQL_OBTENERPUNTO = "SELECT ST_ASTEXT(GEOM) FROM camiones WHERE id_unidad = ?";
     private static final ConexionBD conexion = ConexionBD.connect();
 
     @Override
@@ -116,5 +120,25 @@ public class CamionDAO implements ConsultasBD<Camion> {
             conexion.cerrarConexion();
         }
         return camiones;
+    }
+
+    public Point obtenerPunto(Object key) {
+        PreparedStatement ps;
+        ResultSet rs;
+        Point punto = null;
+        try {
+            ps = conexion.getConexion().prepareStatement(SQL_OBTENERPUNTO);
+            ps.setString(1, key.toString());
+            rs = ps.executeQuery();
+            while(rs.next()) {
+                Log.i("DEBUG", " ASDA " + rs.getObject(1));
+                punto = (Point)rs.getObject(1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            conexion.cerrarConexion();
+        }
+        return punto;
     }
 }
