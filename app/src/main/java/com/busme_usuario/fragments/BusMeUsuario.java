@@ -20,7 +20,9 @@ import android.widget.Spinner;
 
 import com.busme_usuario.R;
 import com.busme_usuario.interfaces.RetrofitMaps;
+import com.busme_usuario.modelos.DAO.CamionDAO;
 import com.busme_usuario.modelos.DAO.RutaDAO;
+import com.busme_usuario.modelos.DTO.Camion;
 import com.busme_usuario.modelos.DTO.Ruta;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
@@ -40,6 +42,8 @@ import com.busme_usuario.modelos.POJO.Example;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.maps.android.PolyUtil;
+
+import org.postgis.Point;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -61,6 +65,9 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
     LatLng origin;
     LatLng dest;
     ArrayList<LatLng> MarkerPoints;
+    CamionDAO daoCamion = new CamionDAO();
+    List<Camion> camiones = daoCamion.readAll();
+    Marker m[] = new Marker[camiones.size()];
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -100,7 +107,7 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
         Spinner spinner = (Spinner) findViewById(R.id.spinnerRutas);
         mMap = googleMap;
         miUbicacion();
-
+        mostrarCamiones();
         // Setting onclick event listener for the map
         mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
 
@@ -230,6 +237,7 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
         @Override
         public void onLocationChanged(Location location) {
             actualizarUbicacion(location);
+            mostrarCamiones();
         }
 
         @Override
@@ -335,5 +343,21 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onNothingSelected(AdapterView<?> parent) {
 
+    }
+
+    public void mostrarCamiones(){
+        List<Camion> camiones = daoCamion.readAll();
+        LatLng coordenadas;
+        Point punto;
+        for(int i = 0; i < camiones.size(); i++){
+            punto = (Point) camiones.get(i).getGeom().getGeometry();
+            coordenadas = new LatLng(punto.x, punto.y);
+            if(m[i] != null){
+                m[i].remove();
+            }
+            m[i] = mMap.addMarker(new MarkerOptions()
+                    .position(coordenadas)
+                    .icon(BitmapDescriptorFactory.fromResource(R.mipmap.marcador_camion)));
+        }
     }
 }
