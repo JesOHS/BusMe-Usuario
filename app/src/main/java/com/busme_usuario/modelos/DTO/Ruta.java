@@ -4,11 +4,15 @@ import org.postgis.PGgeometry;
 
 public class Ruta {
     String idRuta;
-    PGgeometry geom;
+    String polilinea;
 
-    public Ruta(String idRuta, PGgeometry geom) {
+    public Ruta(String polilinea) {
+        this.polilinea = polilinea;
+    }
+
+    public Ruta(String idRuta, String polilinea) {
         this.idRuta = idRuta;
-        this.geom = geom;
+        this.polilinea = polilinea;
     }
 
     public String getIdRuta() {
@@ -19,12 +23,11 @@ public class Ruta {
         this.idRuta = idRuta;
     }
 
-    public PGgeometry getGeom() {
-        return geom;
+    public String getPolilinea() {
+        return polilinea;
     }
 
-    public void setGeom(PGgeometry geom) {
-        this.geom = geom;
+    public void setPolilinea(String polilinea) {
+        this.polilinea = polilinea;
     }
-
 }
