@@ -21,6 +21,7 @@ public class CamionDAO implements ConsultasBD<Camion> {
     private static final String SQL_UPDATE = "UPDATE camiones SET id_ruta = ?, capacidad_max = ?, asientos_disponibles = ?, geom = ? WHERE id_unidad = ?";
     private static final String SQL_READ = "SELECT * FROM camiones WHERE id_unidad = ?";
     private static final String SQL_READALL = "SELECT * FROM camiones";
+    private static final String SQL_OBTENERCAMIONESDELARUTA = "SELECT * FROM camiones WHERE id_ruta = ?;";
     private static final String SQL_OBTENERPUNTO = "SELECT ST_ASTEXT(GEOM) FROM camiones WHERE id_unidad = ?";
     private static final ConexionBD conexion = ConexionBD.connect();
 
@@ -110,6 +111,25 @@ public class CamionDAO implements ConsultasBD<Camion> {
         ArrayList<Camion> camiones = new ArrayList<>();
         try {
             ps = conexion.getConexion().prepareStatement(SQL_READALL);
+            rs = ps.executeQuery();
+            while(rs.next()) {
+                camiones.add(new Camion(rs.getString(1), rs.getString(2), rs.getInt(3), rs.getInt(4), (PGgeometry)rs.getObject(5)));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            conexion.cerrarConexion();
+        }
+        return camiones;
+    }
+
+    public List<Camion> obtenerCamionesDeLaRuta(Object key) {
+        PreparedStatement ps;
+        ResultSet rs;
+        ArrayList<Camion> camiones = new ArrayList<>();
+        try {
+            ps = conexion.getConexion().prepareStatement(SQL_OBTENERCAMIONESDELARUTA);
+            ps.setString(1, key.toString());
             rs = ps.executeQuery();
             while(rs.next()) {
                 camiones.add(new Camion(rs.getString(1), rs.getString(2), rs.getInt(3), rs.getInt(4), (PGgeometry)rs.getObject(5)));
