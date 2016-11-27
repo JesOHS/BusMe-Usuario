@@ -23,7 +23,6 @@ import com.busme_usuario.interfaces.RetrofitMaps;
 import com.busme_usuario.modelos.DAO.CamionDAO;
 import com.busme_usuario.modelos.DAO.RutaDAO;
 import com.busme_usuario.modelos.DTO.Camion;
-import com.busme_usuario.modelos.DTO.Ruta;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.maps.CameraUpdate;
@@ -45,7 +44,6 @@ import com.google.maps.android.PolyUtil;
 
 import org.postgis.Point;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import retrofit.Call;
@@ -54,41 +52,30 @@ import retrofit.GsonConverterFactory;
 import retrofit.Response;
 import retrofit.Retrofit;
 
-public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback, Spinner.OnItemSelectedListener {
+public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback, Spinner.OnItemSelectedListener, LocationListener {
 
-    private GoogleMap mMap;
-    private Marker marcador;
+    static final int MY_PERMISSIONS_REQUEST_LOCATION = 99;
+    GoogleMap mMap;
+    Marker marcadorUsuario;
+    LocationManager locationManager;
     Spinner spinner;
-    double latitud = 0.0;
-    double longitud = 0.0;
-    int count = 0;
+    LatLng puntoEnRutaSeleccionado;
     LatLng origin;
     LatLng dest;
-    ArrayList<LatLng> MarkerPoints;
-    CamionDAO daoCamion = new CamionDAO();
-    List<Camion> camiones = daoCamion.readAll();
-    Marker m[] = new Marker[camiones.size()];
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_bus_me_usuario);
-        if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            checkLocationPermission();
-        }
-
-        // Initializing
-        MarkerPoints = new ArrayList<>();
-
         //show error dialog if Google Play Services not available
         if (!isGooglePlayServicesAvailable()) {
             Log.d("onCreate", "Google Play Services not available. Ending Test case.");
             finish();
-        }
-        else {
+        } else {
             Log.d("onCreate", "Google Play Services available. Continuing.");
         }
-
+        locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        configurarActualizacionesDePosicion();
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
@@ -100,57 +87,44 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
         spinner.setOnItemSelectedListener(this);
     }
 
-
-
     @Override
     public void onMapReady(GoogleMap googleMap) {
-        Spinner spinner = (Spinner) findViewById(R.id.spinnerRutas);
         mMap = googleMap;
-        miUbicacion();
+        // Se obtiene la ubicacion del usuario
+        Location ubicacionUsuario = obtenerUbicacionUsuario();
+        // Se muestra la ubicacion en el mapa
+        mostrarUbicacionUsuario(ubicacionUsuario);
+        double latitud = ubicacionUsuario.getLatitude();
+        double longitud = ubicacionUsuario.getLongitude();
+        /*
+        Se obtienen las coordenadas para hacer zoom a la posicion del usuario
+        en el mapa
+        */
+        LatLng coordenadas = new LatLng(latitud, longitud);
+        // Define en donde va a hacer zoom y a que nivel
+        CameraUpdate actualizacionDeCamara = CameraUpdateFactory.newLatLngZoom(coordenadas, 16);
+        // Se hace el zoom en el mapa
+        mMap.animateCamera(actualizacionDeCamara);
         mostrarCamiones();
-        // Setting onclick event listener for the map
+        /*
+        Evento que se llama cuando se le da click al mapa,
+        para agregar un marcador
+         */
         mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
 
             @Override
             public void onMapClick(LatLng point) {
-
-                // clearing map and generating new marker points if user clicks on map more than two times
-                if (MarkerPoints.size() > 1) {
-                    mMap.clear();
-                    MarkerPoints.clear();
-                    MarkerPoints = new ArrayList<>();
-
-                }
-
-                // Adding new item to the ArrayList
-                MarkerPoints.add(point);
-
+                // Se limpia el mapa;
+                // mMap.clear();
+                // Se agrega un marcador donde el usuario selecciono
+                puntoEnRutaSeleccionado = point;
                 // Creating MarkerOptions
                 MarkerOptions options = new MarkerOptions();
-
                 // Setting the position of the marker
-                options.position(point);
-
-                /**
-                 * For the start location, the color of marker is GREEN and
-                 * for the end location, the color of marker is RED.
-                 */
-                if (MarkerPoints.size() == 1) {
-                    options.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN));
-                } else if (MarkerPoints.size() == 2) {
-                    options.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED));
-                }
-
-
-                // Add new marker to the Google Map Android API V2
+                options.position(puntoEnRutaSeleccionado);
+                options.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN));
+                // Se agrega el marcador al mapa
                 mMap.addMarker(options);
-
-                // Checks, whether start and end locations are captured
-                if (MarkerPoints.size() >= 2) {
-                    origin = MarkerPoints.get(0);
-                    dest = MarkerPoints.get(1);
-                }
-
             }
         });
 
@@ -163,33 +137,25 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
         });
     }
 
-
     private void build_retrofit_and_get_response(String type) {
-
         String url = "https://maps.googleapis.com/maps/";
-
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(url)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
-
         RetrofitMaps service = retrofit.create(RetrofitMaps.class);
-
-        Call<Example> call = service.getDistanceDuration("metric", origin.latitude + "," + origin.longitude,dest.latitude + "," + dest.longitude, type);
-
+        Call<Example> call = service.getDistanceDuration("metric", origin.latitude + "," + origin.longitude, dest.latitude + "," + dest.longitude, type);
         call.enqueue(new Callback<Example>() {
+
             @Override
             public void onResponse(Response<Example> response, Retrofit retrofit) {
-
                 try {
-
                     // This loop will go through all the results and add marker on each location.
                     for (int i = 0; i < response.body().getRoutes().size(); i++) {
                         String distance = response.body().getRoutes().get(i).getLegs().get(i).getDistance().getText();
                         String time = response.body().getRoutes().get(i).getLegs().get(i).getDuration().getText();
                         //ShowDistanceDuration.setText("Distance:" + distance + ", Duration:" + time);
-                        Toast.makeText(getApplicationContext(), "Tiempo: "+time, Toast.LENGTH_SHORT).show();
-
+                        Toast.makeText(getApplicationContext(), "Tiempo: " + time, Toast.LENGTH_SHORT).show();
                     }
                 } catch (Exception e) {
                     Log.d("onResponse", "There is an error");
@@ -205,73 +171,36 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
 
     }
 
-
-
-
-    private void agregarPosicion(double latitud, double longitud) {
-        LatLng coordenadas = new LatLng(latitud, longitud);
-
-        CameraUpdate miUbicacion = CameraUpdateFactory.newLatLngZoom(coordenadas, 16);
-        if (marcador != null) {
-            marcador.remove();
-        }
-        marcador = mMap.addMarker(new MarkerOptions()
-                .position(coordenadas)
-                .title("Yo")
-                .icon(BitmapDescriptorFactory.fromResource(R.mipmap.iconito)));
-        if(count == 0){
-            mMap.animateCamera(miUbicacion);
-            count++;
-        }
-    }
-
-    private void actualizarUbicacion(Location location) {
-        if (location != null) {
-            latitud = location.getLatitude();
-            longitud = location.getLongitude();
-            agregarPosicion(latitud, longitud);
-        }
-    }
-
-    LocationListener locListener = new LocationListener() {
-        @Override
-        public void onLocationChanged(Location location) {
-            actualizarUbicacion(location);
-            mostrarCamiones();
-        }
-
-        @Override
-        public void onStatusChanged(String provider, int status, Bundle extras) {
-
-        }
-
-        @Override
-        public void onProviderEnabled(String provider) {
-
-        }
-
-        @Override
-        public void onProviderDisabled(String provider) {
-
-        }
-    };
-
-    private void miUbicacion() {
+    private Location obtenerUbicacionUsuario() {
         if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            return;
+            return null;
         }
-        LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-        Location location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-        actualizarUbicacion(location);
-        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1500, 0, locListener);
+        // Se obtiene la posicion del usuario
+        return locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+    }
+
+    private void mostrarUbicacionUsuario(Location ubicacion) {
+        // Se muestra la posicion
+        if (ubicacion != null) {
+            double latitud = ubicacion.getLatitude();
+            double longitud = ubicacion.getLongitude();
+            LatLng coordenadas = new LatLng(latitud, longitud);
+            if (marcadorUsuario != null) {
+                marcadorUsuario.remove();
+            }
+            marcadorUsuario = mMap.addMarker(new MarkerOptions()
+                    .position(coordenadas)
+                    .title("Yo")
+                    .icon(BitmapDescriptorFactory.fromResource(R.mipmap.iconito)));
+        }
     }
 
     // Checking if Google Play Services Available or not
     private boolean isGooglePlayServicesAvailable() {
         GoogleApiAvailability googleAPI = GoogleApiAvailability.getInstance();
         int result = googleAPI.isGooglePlayServicesAvailable(this);
-        if(result != ConnectionResult.SUCCESS) {
-            if(googleAPI.isUserResolvableError(result)) {
+        if (result != ConnectionResult.SUCCESS) {
+            if (googleAPI.isUserResolvableError(result)) {
                 googleAPI.getErrorDialog(this, result,
                         0).show();
             }
@@ -280,8 +209,7 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
         return true;
     }
 
-    public static final int MY_PERMISSIONS_REQUEST_LOCATION = 99;
-    public boolean checkLocationPermission(){
+    public boolean checkLocationPermission() {
         if (ContextCompat.checkSelfPermission(this,
                 android.Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
@@ -289,7 +217,6 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
             // Asking user if explanation is needed
             if (ActivityCompat.shouldShowRequestPermissionRationale(this,
                     android.Manifest.permission.ACCESS_FINE_LOCATION)) {
-
                 // Show an explanation to the user *asynchronously* -- don't block
                 // this thread waiting for the user's response! After the user
                 // sees the explanation, try again to request the permission.
@@ -298,8 +225,6 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
                 ActivityCompat.requestPermissions(this,
                         new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION},
                         MY_PERMISSIONS_REQUEST_LOCATION);
-
-
             } else {
                 // No explanation needed, we can request the permission.
                 ActivityCompat.requestPermissions(this,
@@ -323,10 +248,20 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
         spinner.setAdapter(adaptador);
     }
 
+    // Se ejecuta cuando se selecciona una ruta del spinner
     @Override
     public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+        actualizarMapa();
+    }
+
+    @Override
+    public void onNothingSelected(AdapterView<?> parent) {
+
+    }
+
+    public void dibujarRuta() {
         RutaDAO rutaDAO = new RutaDAO();
-        String id_ruta = parent.getItemAtPosition(position).toString();
+        String id_ruta = spinner.getSelectedItem().toString();
         // Obtener la polilinea codificada
         String encodedPolyline = rutaDAO.obtenerPolilinea(id_ruta);
         // Crear el objeto para agregar la polilinea
@@ -335,29 +270,76 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
         polylineOptions.width(5);
         // Agregar la polilinea decodificada con PolyUtil.decode()
         polylineOptions.addAll(PolyUtil.decode(encodedPolyline));
-        //TODO: Borrar polilineas anteriores sin perjudicar lo demas
+        // Limpia el mapa para volver a agregar los marcadores y polilinea
+        //mMap.clear();
         Polyline line = mMap.addPolyline(polylineOptions);
         line.setVisible(true);
     }
 
-    @Override
-    public void onNothingSelected(AdapterView<?> parent) {
-
-    }
-
-    public void mostrarCamiones(){
-        List<Camion> camiones = daoCamion.readAll();
+    public void mostrarCamiones() {
+        CamionDAO camionDAO = new CamionDAO();
+        String id_ruta = spinner.getSelectedItem().toString();
+        List<Camion> camiones = camionDAO.obtenerCamionesDeLaRuta(id_ruta);
+        Marker m[] = new Marker[camiones.size()];
         LatLng coordenadas;
         Point punto;
-        for(int i = 0; i < camiones.size(); i++){
+        for (int i = 0; i < camiones.size(); i++) {
             punto = (Point) camiones.get(i).getGeom().getGeometry();
             coordenadas = new LatLng(punto.x, punto.y);
-            if(m[i] != null){
-                m[i].remove();
-            }
-            m[i] = mMap.addMarker(new MarkerOptions()
+            mMap.addMarker(new MarkerOptions()
                     .position(coordenadas)
                     .icon(BitmapDescriptorFactory.fromResource(R.mipmap.marcador_camion)));
         }
+    }
+
+    public void actualizarMapa() {
+        mMap.clear();
+        // Obtener la ubicacion del usuario y de los camiones si hay cambios
+        mostrarUbicacionUsuario(obtenerUbicacionUsuario());
+        mostrarCamiones();
+        dibujarRuta();
+    }
+
+    public void configurarActualizacionesDePosicion() {
+        if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            checkLocationPermission();
+        }
+        // Se configuran las actualizaciones de posiciones a cada 5segundos o 1 metro
+        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 400, 1, this);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();  // Always call the superclass method first
+        configurarActualizacionesDePosicion();
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            checkLocationPermission();
+        }
+        locationManager.removeUpdates(this);
+    }
+
+    @Override
+    public void onLocationChanged(Location location) {
+        actualizarMapa();
+    }
+
+    @Override
+    public void onStatusChanged(String provider, int status, Bundle extras) {
+
+    }
+
+    @Override
+    public void onProviderEnabled(String provider) {
+
+    }
+
+    @Override
+    public void onProviderDisabled(String provider) {
+
     }
 }
