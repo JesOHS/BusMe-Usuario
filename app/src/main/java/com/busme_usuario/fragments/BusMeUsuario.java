@@ -53,17 +53,17 @@ import retrofit.GsonConverterFactory;
 import retrofit.Response;
 import retrofit.Retrofit;
 
-public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback, Spinner.OnItemSelectedListener, LocationListener {
+public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback, Spinner.OnItemSelectedListener, LocationListener, GoogleMap.OnPolylineClickListener {
 
     static final int MY_PERMISSIONS_REQUEST_LOCATION = 99;
     GoogleMap mMap;
     Marker marcadorUsuario;
     LocationManager locationManager;
     Spinner spinner;
-    LatLng puntoEnRutaSeleccionado;
+    Marker puntoEnRutaSeleccionado;
     LatLng origin;
     LatLng dest;
-    Polyline line;
+    private static Polyline line;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -84,7 +84,6 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
         mapFragment.getMapAsync(this);
         // Se obtiene el spinner
         spinner = (Spinner) findViewById(R.id.spinnerRutas);
-        //spinner.setOnItemClickListener(this);
         cargarRutasEnSpinner();
         spinner.setOnItemSelectedListener(this);
     }
@@ -119,7 +118,11 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
 
             @Override
             public void onMapClick(LatLng point) {
-                // Se limpia el mapa;
+                Log.i("DEBUG", "mapa click");
+                if(PolyUtil.isLocationOnPath(point, line.getPoints(), true, 100)) {
+                    //Log.i("DEBUG", "Polilinea click");
+                }
+                /*// Se limpia el mapa;
                 // mMap.clear();
                 // Se agrega un marcador donde el usuario selecciono
                 puntoEnRutaSeleccionado = point;
@@ -129,7 +132,7 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
                 options.position(puntoEnRutaSeleccionado);
                 options.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN));
                 // Se agrega el marcador al mapa
-                mMap.addMarker(options);
+                mMap.addMarker(options);*/
             }
         });
 
@@ -295,5 +298,15 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onProviderDisabled(String provider) {
 
+    }
+
+    public static void setLine(Polyline line) {
+        BusMeUsuario.line = line;
+        BusMeUsuario.line.setClickable(true);
+    }
+
+    @Override
+    public void onPolylineClick(Polyline polyline) {
+        Log.i("DEBUG", "Polilinea click");
     }
 }
