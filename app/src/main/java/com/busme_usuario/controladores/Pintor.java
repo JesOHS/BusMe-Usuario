@@ -3,8 +3,10 @@ package com.busme_usuario.controladores;
 import android.graphics.Color;
 import android.location.Location;
 import android.os.AsyncTask;
+import android.util.Log;
 
 import com.busme_usuario.R;
+import com.busme_usuario.fragments.BusMeUsuario;
 import com.busme_usuario.modelos.DAO.CamionDAO;
 import com.busme_usuario.modelos.DAO.RutaDAO;
 import com.busme_usuario.modelos.DTO.Camion;
@@ -21,20 +23,20 @@ import org.postgis.Point;
 
 import java.util.List;
 
-public class Pintor extends AsyncTask<String, String, Void> {
+public class Pintor extends AsyncTask<String, String, Void> implements GoogleMap.OnPolylineClickListener {
 
     List<Camion> camiones;
     String encodedPolyline;
     private GoogleMap googleMap;
     private String id_ruta;
-    Marker marcadorUsuario;
-    private Polyline line;
+    static private Polyline line;
     private Location ubicacionUsuario;
 
     public Pintor(GoogleMap googleMap, String id_ruta, Marker marcadorUsuario, Polyline line, Location ubicacionUsuario) {
         this.googleMap = googleMap;
         this.id_ruta = id_ruta;
-        this.marcadorUsuario = marcadorUsuario;
+        //this.marcadorUsuario = marcadorUsuario;
+        //Log.i("DBEUG", "usuario recibido: " + marcadorUsuario.toString());
         this.line = line;
         this.ubicacionUsuario = ubicacionUsuario;
     }
@@ -61,7 +63,7 @@ public class Pintor extends AsyncTask<String, String, Void> {
         // Crear el objeto para agregar la polilinea
         PolylineOptions polylineOptions = new PolylineOptions();
         polylineOptions.color(Color.RED);
-        polylineOptions.width(10);
+        polylineOptions.width(20);
         polylineOptions.geodesic(true);
         // Agregar la polilinea decodificada con PolyUtil.decode()
         polylineOptions.addAll(PolyUtil.decode(encodedPolyline));
@@ -70,6 +72,8 @@ public class Pintor extends AsyncTask<String, String, Void> {
         }
         line = googleMap.addPolyline(polylineOptions);
         line.setVisible(true);
+        line.setClickable(false);
+        BusMeUsuario.setLine(line);
     }
 
     private void mostrarCamiones() {
@@ -91,14 +95,15 @@ public class Pintor extends AsyncTask<String, String, Void> {
             double latitud = ubicacionUsuario.getLatitude();
             double longitud = ubicacionUsuario.getLongitude();
             LatLng coordenadas = new LatLng(latitud, longitud);
-            if (marcadorUsuario != null) {
-                marcadorUsuario.remove();
-            }
-            marcadorUsuario = googleMap.addMarker(new MarkerOptions()
+            googleMap.addMarker(new MarkerOptions()
                     .position(coordenadas)
                     .title("Yo")
                     .icon(BitmapDescriptorFactory.fromResource(R.mipmap.iconito)));
         }
     }
 
+    @Override
+    public void onPolylineClick(Polyline polyline) {
+        Log.i("DEBUG", "Polilinea click evento");
+    }
 }
