@@ -19,6 +19,7 @@ import android.widget.Button;
 import android.widget.Spinner;
 
 import com.busme_usuario.R;
+import com.busme_usuario.controladores.Pintor;
 import com.busme_usuario.interfaces.RetrofitMaps;
 import com.busme_usuario.modelos.DAO.CamionDAO;
 import com.busme_usuario.modelos.DAO.RutaDAO;
@@ -91,10 +92,13 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
+        String id_ruta = spinner.getSelectedItem().toString();
         // Se obtiene la ubicacion del usuario
         Location ubicacionUsuario = obtenerUbicacionUsuario();
         // Se muestra la ubicacion en el mapa
-        mostrarUbicacionUsuario(ubicacionUsuario);
+        new Pintor(mMap, id_ruta, marcadorUsuario, line, ubicacionUsuario).execute();
+        //mostrarUbicacionUsuario(ubicacionUsuario);
+        //mostrarCamiones();
         double latitud = ubicacionUsuario.getLatitude();
         double longitud = ubicacionUsuario.getLongitude();
         /*
@@ -106,7 +110,7 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
         CameraUpdate actualizacionDeCamara = CameraUpdateFactory.newLatLngZoom(coordenadas, 16);
         // Se hace el zoom en el mapa
         mMap.animateCamera(actualizacionDeCamara);
-        mostrarCamiones();
+
         /*
         Evento que se llama cuando se le da click al mapa,
         para agregar un marcador
@@ -180,22 +184,6 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
         return locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
     }
 
-    private void mostrarUbicacionUsuario(Location ubicacion) {
-        // Se muestra la posicion
-        if (ubicacion != null) {
-            double latitud = ubicacion.getLatitude();
-            double longitud = ubicacion.getLongitude();
-            LatLng coordenadas = new LatLng(latitud, longitud);
-            if (marcadorUsuario != null) {
-                marcadorUsuario.remove();
-            }
-            marcadorUsuario = mMap.addMarker(new MarkerOptions()
-                    .position(coordenadas)
-                    .title("Yo")
-                    .icon(BitmapDescriptorFactory.fromResource(R.mipmap.iconito)));
-        }
-    }
-
     // Checking if Google Play Services Available or not
     private boolean isGooglePlayServicesAvailable() {
         GoogleApiAvailability googleAPI = GoogleApiAvailability.getInstance();
@@ -238,6 +226,14 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
+    public void configurarActualizacionesDePosicion() {
+        if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            checkLocationPermission();
+        }
+        // Se configuran las actualizaciones de posiciones a cada 5segundos o 1 metro
+        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 2000, 0, this);
+    }
+
     public void cargarRutasEnSpinner() {
         RutaDAO rutaDAO = new RutaDAO();
         List<String> listaRutas = rutaDAO.obtenerTodasLasIDRutas();
@@ -249,6 +245,12 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
         spinner.setAdapter(adaptador);
     }
 
+    private void actualizarMapa() {
+        String id_ruta = spinner.getSelectedItem().toString();
+        Location ubicacionUsuario = obtenerUbicacionUsuario();
+        new Pintor(mMap, id_ruta, marcadorUsuario, line, ubicacionUsuario).execute();
+    }
+
     // Se ejecuta cuando se selecciona una ruta del spinner
     @Override
     public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
@@ -258,57 +260,6 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onNothingSelected(AdapterView<?> parent) {
 
-    }
-
-    public void dibujarRuta() {
-        RutaDAO rutaDAO = new RutaDAO();
-        String id_ruta = spinner.getSelectedItem().toString();
-        // Obtener la polilinea codificada
-        String encodedPolyline = rutaDAO.obtenerPolilinea(id_ruta);
-        // Crear el objeto para agregar la polilinea
-        PolylineOptions polylineOptions = new PolylineOptions();
-        polylineOptions.color(Color.RED);
-        polylineOptions.width(5);
-        polylineOptions.geodesic(true);
-        // Agregar la polilinea decodificada con PolyUtil.decode()
-        polylineOptions.addAll(PolyUtil.decode(encodedPolyline));
-        if(line != null) {
-            line.remove();
-        }
-        line = mMap.addPolyline(polylineOptions);
-        line.setVisible(true);
-    }
-
-    public void mostrarCamiones() {
-        CamionDAO camionDAO = new CamionDAO();
-        String id_ruta = spinner.getSelectedItem().toString();
-        List<Camion> camiones = camionDAO.obtenerCamionesDeLaRuta(id_ruta);
-        Marker m[] = new Marker[camiones.size()];
-        LatLng coordenadas;
-        Point punto;
-        for (int i = 0; i < camiones.size(); i++) {
-            punto = (Point) camiones.get(i).getGeom().getGeometry();
-            coordenadas = new LatLng(punto.x, punto.y);
-            mMap.addMarker(new MarkerOptions()
-                    .position(coordenadas)
-                    .icon(BitmapDescriptorFactory.fromResource(R.mipmap.marcador_camion)));
-        }
-    }
-
-    public void actualizarMapa() {
-        mMap.clear();
-        // Obtener la ubicacion del usuario y de los camiones si hay cambios
-        mostrarUbicacionUsuario(obtenerUbicacionUsuario());
-        mostrarCamiones();
-        dibujarRuta();
-    }
-
-    public void configurarActualizacionesDePosicion() {
-        if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            checkLocationPermission();
-        }
-        // Se configuran las actualizaciones de posiciones a cada 5segundos o 1 metro
-        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 400, 1, this);
     }
 
     @Override
