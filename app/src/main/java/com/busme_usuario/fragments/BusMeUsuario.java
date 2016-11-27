@@ -62,6 +62,7 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
     LatLng puntoEnRutaSeleccionado;
     LatLng origin;
     LatLng dest;
+    Polyline line;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -268,11 +269,13 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
         PolylineOptions polylineOptions = new PolylineOptions();
         polylineOptions.color(Color.RED);
         polylineOptions.width(5);
+        polylineOptions.geodesic(true);
         // Agregar la polilinea decodificada con PolyUtil.decode()
         polylineOptions.addAll(PolyUtil.decode(encodedPolyline));
-        // Limpia el mapa para volver a agregar los marcadores y polilinea
-        //mMap.clear();
-        Polyline line = mMap.addPolyline(polylineOptions);
+        if(line != null) {
+            line.remove();
+        }
+        line = mMap.addPolyline(polylineOptions);
         line.setVisible(true);
     }
 
