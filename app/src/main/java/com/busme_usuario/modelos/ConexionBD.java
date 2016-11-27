@@ -35,6 +35,7 @@ public class ConexionBD {
             conexion = DriverManager.getConnection(url, props);
             //((org.postgresql.PGConnection)conexion).addDataType("geometry",Class.forName("org.postgis.PGgeometry"));
         } catch (SQLException e) {
+            e.printStackTrace();
             Log.i("DEBUG", e.getMessage());
         } catch (ClassNotFoundException e) {
             Log.i("DEBUG", e.getMessage());

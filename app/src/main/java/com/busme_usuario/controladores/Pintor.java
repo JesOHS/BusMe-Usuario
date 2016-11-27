@@ -23,7 +23,7 @@ import org.postgis.Point;
 
 import java.util.List;
 
-public class Pintor extends AsyncTask<String, String, Void> {
+public class Pintor extends AsyncTask<String, String, Void> implements GoogleMap.OnPolylineClickListener {
 
     List<Camion> camiones;
     String encodedPolyline;
@@ -72,7 +72,7 @@ public class Pintor extends AsyncTask<String, String, Void> {
         }
         line = googleMap.addPolyline(polylineOptions);
         line.setVisible(true);
-        line.setClickable(true);
+        line.setClickable(false);
         BusMeUsuario.setLine(line);
     }
 
@@ -102,4 +102,8 @@ public class Pintor extends AsyncTask<String, String, Void> {
         }
     }
 
+    @Override
+    public void onPolylineClick(Polyline polyline) {
+        Log.i("DEBUG", "Polilinea click evento");
+    }
 }
