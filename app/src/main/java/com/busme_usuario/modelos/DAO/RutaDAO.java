@@ -15,12 +15,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class RutaDAO implements ConsultasBD<Ruta> {
-    private static final String SQL_INSERT = "INSERT INTO rutas(id_ruta, polilinea) VALUES (?, ?)";
-    private static final String SQL_DELETE = "DELETE FROM rutas WHERE id_ruta = ?";
-    private static final String SQL_UPDATE = "UPDATE rutas SET polilinea = ? WHERE id_ruta = ?";
-    private static final String SQL_READ = "SELECT * FROM rutas WHERE id_ruta = ?";
-    private static final String SQL_READALL = "SELECT * FROM rutas";
-    private static final String SQL_OBTENER_ID_RUTAS = "SELECT id_ruta FROM rutas";
+    private static final String SQL_INSERT = "INSERT INTO rutas(id_ruta, polilinea1, polilinea2) VALUES (?, ?, ?);";
+    private static final String SQL_DELETE = "DELETE FROM rutas WHERE id_ruta = ?;";
+    private static final String SQL_UPDATE = "UPDATE rutas SET polilinea1 = ?, polilinea2 = ? WHERE id_ruta = ?;";
+    private static final String SQL_READ = "SELECT * FROM rutas WHERE id_ruta = ?;";
+    private static final String SQL_READALL = "SELECT * FROM rutas;";
+    private static final String SQL_OBTENER_ID_RUTAS = "SELECT id_ruta FROM rutas;";
     private static final String SQL_OBTENER_POLILINEA1 = "SELECT polilinea1 FROM rutas WHERE (rutas.id_ruta = ?);";
     private static final String SQL_OBTENER_POLILINEA2 = "SELECT polilinea2 FROM rutas WHERE (rutas.id_ruta = ?);";
     private static final ConexionBD conexion = ConexionBD.connect();
@@ -135,33 +135,26 @@ public class RutaDAO implements ConsultasBD<Ruta> {
         return rutas;
     }
 
-    public String obtenerPolilinea(Object key, boolean polilinea1) {
+    public String obtenerPolilinea(Object key, String recorriendo) {
         PreparedStatement ps;
         ResultSet rs;
         String polilinea = "";
         try {
-            if(polilinea1){
+            if(recorriendo.equals("polilinea1")) {
                 ps = conexion.getConexion().prepareStatement(SQL_OBTENER_POLILINEA1);
-            }else{
+            } else {
                 ps = conexion.getConexion().prepareStatement(SQL_OBTENER_POLILINEA2);
             }
-
             ps.setString(1, key.toString());
             rs = ps.executeQuery();
             while(rs.next()) {
-                if(polilinea1){
-                    polilinea = rs.getString("polilinea1");
-                }else{
-                    polilinea=rs.getString("polilinea2");
-                }
-
+                polilinea = rs.getString(recorriendo);
             }
         } catch (SQLException e) {
             e.printStackTrace();
         } finally {
             conexion.cerrarConexion();
         }
-
         return polilinea;
     }
 

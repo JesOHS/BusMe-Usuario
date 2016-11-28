@@ -14,7 +14,6 @@ import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.Spinner;
 
@@ -29,7 +28,6 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
-import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 
@@ -61,12 +59,13 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
     LatLng dest;
     Switch switchRuta;
     int actualizacion = 0;
-    boolean polilinea1 = false;
+    String recorriendo;
     private static Polyline line;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        recorriendo = "polilinea1";
         setContentView(R.layout.activity_bus_me_usuario);
         //show error dialog if Google Play Services not available
         if (!isGooglePlayServicesAvailable()) {
@@ -75,6 +74,7 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
         } else {
             Log.d("onCreate", "Google Play Services available. Continuing.");
         }
+        checkLocationPermission();
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         configurarActualizacionesDePosicion();
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
@@ -98,19 +98,15 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if(isChecked){
-                    polilinea1=true;
+                    recorriendo = "polilinea2";
 
                 }else{
-                    polilinea1=false;
+                    recorriendo = "polilinea1";
                 }
             }
         });
         // Se muestra la ubicacion en el mapa
-
-        new Pintor(mMap, id_ruta, marcadorUsuario,line,ubicacionUsuario, polilinea1).execute();
-        //mostrarUbicacionUsuario(ubicacionUsuario);
-        //mostrarCamiones();
-
+        new Pintor(mMap, id_ruta, ubicacionUsuario, recorriendo).execute();
         double latitud = ubicacionUsuario.getLatitude();
         double longitud = ubicacionUsuario.getLongitude();
         /*
@@ -148,8 +144,6 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
                     }
                     marcadorEnRuta = mMap.addMarker(new MarkerOptions()
                             .position(point));
-                            //.title("Yo")
-                            //.icon(BitmapDescriptorFactory.fromResource(R.mipmap.iconito)));
                 }
             }
         });
@@ -269,7 +263,7 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
     private void actualizarMapa() {
         String id_ruta = spinner.getSelectedItem().toString();
         Location ubicacionUsuario = obtenerUbicacionUsuario();
-        new Pintor(mMap, id_ruta, marcadorUsuario,line,ubicacionUsuario, polilinea1).execute();
+        new Pintor(mMap, id_ruta, ubicacionUsuario, recorriendo).execute();
         actualizacion++;
         Log.i("DEBUG", "Actualizacion #" + actualizacion);
     }

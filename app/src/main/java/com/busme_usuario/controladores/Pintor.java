@@ -23,31 +23,21 @@ import org.postgis.Point;
 
 import java.util.List;
 
-public class Pintor extends AsyncTask<String, String, Void> implements GoogleMap.OnPolylineClickListener {
+public class Pintor extends AsyncTask<String, String, Void> {
 
     List<Camion> camiones;
     String encodedPolyline;
     private GoogleMap googleMap;
-    private Marker marcadorUsuario;
     private String id_ruta;
-    static private Polyline line;
     private Location ubicacionUsuario;
-    boolean polilinea1;
     private String recorriendo;
 
 
-    public Pintor(GoogleMap googleMap, String id_ruta, Marker marcadorUsuario, Polyline line, Location ubicacionUsuario, boolean polilinea1) {
+    public Pintor(GoogleMap googleMap, String id_ruta, Location ubicacionUsuario, String recorriendo) {
         this.id_ruta = id_ruta;
         this.googleMap = googleMap;
-        this.marcadorUsuario = marcadorUsuario;
-        this.line = line;
         this.ubicacionUsuario = ubicacionUsuario;
-        this.polilinea1 = polilinea1;
-        if(polilinea1) {
-            recorriendo = "polilinea1";
-        } else {
-            recorriendo = "polilinea2";
-        }
+        this.recorriendo = recorriendo;
     }
 
     @Override
@@ -55,7 +45,7 @@ public class Pintor extends AsyncTask<String, String, Void> implements GoogleMap
         RutaDAO rutaDAO = new RutaDAO();
         CamionDAO camionDAO = new CamionDAO();
         // Obtener la polilinea codificada de la bd
-        encodedPolyline = rutaDAO.obtenerPolilinea(id_ruta, polilinea1);
+        encodedPolyline = rutaDAO.obtenerPolilinea(id_ruta, recorriendo);
         // Obtener camiones de la ruta seleccionada
         camiones = camionDAO.obtenerCamionesDeLaRuta(id_ruta, recorriendo);
         return null;
@@ -69,6 +59,7 @@ public class Pintor extends AsyncTask<String, String, Void> implements GoogleMap
     }
 
     private void dibujarRuta() {
+        //Log.i("DEBUG", "ENTRE A PINTAR");
         // Crear el objeto para agregar la polilinea
         PolylineOptions polylineOptions = new PolylineOptions();
         polylineOptions.color(Color.RED);
@@ -76,10 +67,7 @@ public class Pintor extends AsyncTask<String, String, Void> implements GoogleMap
         polylineOptions.geodesic(true);
         // Agregar la polilinea decodificada con PolyUtil.decode()
         polylineOptions.addAll(PolyUtil.decode(encodedPolyline));
-        if(line != null) {
-            line.remove();
-        }
-        line = googleMap.addPolyline(polylineOptions);
+        Polyline line = googleMap.addPolyline(polylineOptions);
         line.setVisible(true);
         line.setClickable(false);
         BusMeUsuario.setLine(line);
@@ -111,8 +99,4 @@ public class Pintor extends AsyncTask<String, String, Void> implements GoogleMap
         }
     }
 
-    @Override
-    public void onPolylineClick(Polyline polyline) {
-        Log.i("DEBUG", "Polilinea click evento");
-    }
 }
