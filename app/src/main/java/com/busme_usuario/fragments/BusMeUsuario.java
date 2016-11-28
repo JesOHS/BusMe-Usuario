@@ -16,6 +16,7 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.CompoundButton;
 import android.widget.Spinner;
 
 import com.busme_usuario.R;
@@ -36,6 +37,7 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
+import android.widget.Switch;
 import android.widget.Toast;
 
 import com.busme_usuario.modelos.POJO.Example;
@@ -64,6 +66,10 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
     LatLng origin;
     LatLng dest;
     Polyline line;
+    Switch switchRuta;
+    int actualizacion = 0;
+    boolean polilinea1 = true;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -95,8 +101,20 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
         String id_ruta = spinner.getSelectedItem().toString();
         // Se obtiene la ubicacion del usuario
         Location ubicacionUsuario = obtenerUbicacionUsuario();
+        switchRuta = (Switch) findViewById(R.id.switchRuta);
+        switchRuta.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if(isChecked){
+                    polilinea1=true;
+
+                }else{
+                    polilinea1=false;
+                }
+            }
+        });
         // Se muestra la ubicacion en el mapa
-        new Pintor(mMap, id_ruta, marcadorUsuario, line, ubicacionUsuario).execute();
+        new Pintor(mMap, id_ruta, marcadorUsuario,line,ubicacionUsuario, polilinea1).execute();
         //mostrarUbicacionUsuario(ubicacionUsuario);
         //mostrarCamiones();
         double latitud = ubicacionUsuario.getLatitude();
@@ -133,13 +151,13 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
             }
         });
 
-        Button btnDriving = (Button) findViewById(R.id.btnCalcularTiempo);
+        /*Button btnDriving = (Button) findViewById(R.id.btnCalcularTiempo);
         btnDriving.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 build_retrofit_and_get_response("driving");
             }
-        });
+        });*/
     }
 
     private void build_retrofit_and_get_response(String type) {
@@ -248,7 +266,9 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
     private void actualizarMapa() {
         String id_ruta = spinner.getSelectedItem().toString();
         Location ubicacionUsuario = obtenerUbicacionUsuario();
-        new Pintor(mMap, id_ruta, marcadorUsuario, line, ubicacionUsuario).execute();
+        new Pintor(mMap, id_ruta, marcadorUsuario,line,ubicacionUsuario, polilinea1).execute();
+        actualizacion++;
+        Log.i("DEBUG", "Actualizacion #" + actualizacion);
     }
 
     // Se ejecuta cuando se selecciona una ruta del spinner

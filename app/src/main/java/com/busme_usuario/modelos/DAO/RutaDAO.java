@@ -21,7 +21,8 @@ public class RutaDAO implements ConsultasBD<Ruta> {
     private static final String SQL_READ = "SELECT * FROM rutas WHERE id_ruta = ?";
     private static final String SQL_READALL = "SELECT * FROM rutas";
     private static final String SQL_OBTENER_ID_RUTAS = "SELECT id_ruta FROM rutas";
-    private static final String SQL_OBTENER_POLILINEA = "SELECT polilinea FROM rutas WHERE (rutas.id_ruta = ?);";
+    private static final String SQL_OBTENER_POLILINEA1 = "SELECT polilinea1 FROM rutas WHERE (rutas.id_ruta = ?);";
+    private static final String SQL_OBTENER_POLILINEA2 = "SELECT polilinea2 FROM rutas WHERE (rutas.id_ruta = ?);";
     private static final ConexionBD conexion = ConexionBD.connect();
 
     @Override
@@ -134,22 +135,33 @@ public class RutaDAO implements ConsultasBD<Ruta> {
         return rutas;
     }
 
-    public String obtenerPolilinea(Object key) {
+    public String obtenerPolilinea(Object key,boolean polilinea1) {
         PreparedStatement ps;
         ResultSet rs;
         String polilinea = "";
         try {
-            ps = conexion.getConexion().prepareStatement(SQL_OBTENER_POLILINEA);
+            if(polilinea1){
+                ps = conexion.getConexion().prepareStatement(SQL_OBTENER_POLILINEA1);
+            }else{
+                ps = conexion.getConexion().prepareStatement(SQL_OBTENER_POLILINEA2);
+            }
+
             ps.setString(1, key.toString());
             rs = ps.executeQuery();
             while(rs.next()) {
-                polilinea = rs.getString("polilinea");
+                if(polilinea1){
+                    polilinea = rs.getString("polilinea1");
+                }else{
+                    polilinea=rs.getString("polilinea2");
+                }
+
             }
         } catch (SQLException e) {
             e.printStackTrace();
         } finally {
             conexion.cerrarConexion();
         }
+
         return polilinea;
     }
 

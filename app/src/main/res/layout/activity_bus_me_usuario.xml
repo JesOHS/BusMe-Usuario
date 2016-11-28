@@ -13,26 +13,21 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:layout_below="@+id/spinnerRutas"
+
     tools:context="com.busme_usuario.fragments.BusMeUsuario" />
 
-    <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-        xmlns:tools="http://schemas.android.com/tools"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true">
-        <Button
-            android:id="@+id/btnCalcularTiempo"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Calcular tiempo" />
-
-    </LinearLayout>
 
     <Spinner
         android:id="@+id/spinnerRutas"
         android:layout_width="fill_parent"
         android:prompt="@string/spinner_titulo"
         android:layout_height="50dp" />
+    <Switch
+        android:id="@+id/switchRuta"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/spinnerRutas"
+        android:text="Cambiar sentido de la ruta " />
+
 
 </RelativeLayout>
