@@ -30,13 +30,16 @@ public class Pintor extends AsyncTask<String, String, Void> {
     Marker marcadorUsuario;
     private Polyline line;
     private Location ubicacionUsuario;
+    boolean polilinea1;
 
-    public Pintor(GoogleMap googleMap, String id_ruta, Marker marcadorUsuario, Polyline line, Location ubicacionUsuario) {
-        this.googleMap = googleMap;
+
+    public Pintor(GoogleMap googleMap, String id_ruta, Marker marcadorUsuario, Polyline line, Location ubicacionUsuario, boolean polilinea1) {
         this.id_ruta = id_ruta;
+        this.googleMap = googleMap;
         this.marcadorUsuario = marcadorUsuario;
         this.line = line;
         this.ubicacionUsuario = ubicacionUsuario;
+        this.polilinea1 = polilinea1;
     }
 
     @Override
@@ -44,9 +47,10 @@ public class Pintor extends AsyncTask<String, String, Void> {
         RutaDAO rutaDAO = new RutaDAO();
         CamionDAO camionDAO = new CamionDAO();
         // Obtener la polilinea codificada de la bd
-        encodedPolyline = rutaDAO.obtenerPolilinea(id_ruta);
+        encodedPolyline = rutaDAO.obtenerPolilinea(id_ruta,polilinea1);
         // Obtener camiones de la ruta seleccionada
         camiones = camionDAO.obtenerCamionesDeLaRuta(id_ruta);
+
         return null;
     }
 
