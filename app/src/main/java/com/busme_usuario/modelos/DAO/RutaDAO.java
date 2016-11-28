@@ -135,7 +135,7 @@ public class RutaDAO implements ConsultasBD<Ruta> {
         return rutas;
     }
 
-    public String obtenerPolilinea(Object key,boolean polilinea1) {
+    public String obtenerPolilinea(Object key, boolean polilinea1) {
         PreparedStatement ps;
         ResultSet rs;
         String polilinea = "";

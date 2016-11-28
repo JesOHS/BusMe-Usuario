@@ -28,24 +28,26 @@ public class Pintor extends AsyncTask<String, String, Void> implements GoogleMap
     List<Camion> camiones;
     String encodedPolyline;
     private GoogleMap googleMap;
+    private Marker marcadorUsuario;
     private String id_ruta;
     static private Polyline line;
     private Location ubicacionUsuario;
     boolean polilinea1;
+    private String recorriendo;
 
 
     public Pintor(GoogleMap googleMap, String id_ruta, Marker marcadorUsuario, Polyline line, Location ubicacionUsuario, boolean polilinea1) {
         this.id_ruta = id_ruta;
-<<<<<<< HEAD
         this.googleMap = googleMap;
         this.marcadorUsuario = marcadorUsuario;
-=======
-        //this.marcadorUsuario = marcadorUsuario;
-        //Log.i("DBEUG", "usuario recibido: " + marcadorUsuario.toString());
->>>>>>> dca759375ff5d31be34a02a01f77e1b980751778
         this.line = line;
         this.ubicacionUsuario = ubicacionUsuario;
         this.polilinea1 = polilinea1;
+        if(polilinea1) {
+            recorriendo = "polilinea1";
+        } else {
+            recorriendo = "polilinea2";
+        }
     }
 
     @Override
@@ -53,10 +55,9 @@ public class Pintor extends AsyncTask<String, String, Void> implements GoogleMap
         RutaDAO rutaDAO = new RutaDAO();
         CamionDAO camionDAO = new CamionDAO();
         // Obtener la polilinea codificada de la bd
-        encodedPolyline = rutaDAO.obtenerPolilinea(id_ruta,polilinea1);
+        encodedPolyline = rutaDAO.obtenerPolilinea(id_ruta, polilinea1);
         // Obtener camiones de la ruta seleccionada
-        camiones = camionDAO.obtenerCamionesDeLaRuta(id_ruta);
-
+        camiones = camionDAO.obtenerCamionesDeLaRuta(id_ruta, recorriendo);
         return null;
     }
 

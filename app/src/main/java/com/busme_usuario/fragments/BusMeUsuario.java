@@ -59,14 +59,10 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
     Spinner spinner;
     LatLng origin;
     LatLng dest;
-
     Switch switchRuta;
     int actualizacion = 0;
-    boolean polilinea1 = true;
-
-
+    boolean polilinea1 = false;
     private static Polyline line;
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

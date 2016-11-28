@@ -16,13 +16,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class CamionDAO implements ConsultasBD<Camion> {
-    private static final String SQL_INSERT = "INSERT INTO camiones(id_unidad, id_ruta, capacidad_max, asientos_disponibles, geom) VALUES(?, ?, ?, ?, ?)";
+    private static final String SQL_INSERT = "INSERT INTO camiones(id_unidad, id_ruta, recorriendo, capacidad_max, asientos_disponibles, geom) VALUES(?, ?, ?, ?, ?, ?);";
     private static final String SQL_DELETE = "DELETE FROM camiones WHERE id_unidad = ?";
-    private static final String SQL_UPDATE = "UPDATE camiones SET id_ruta = ?, capacidad_max = ?, asientos_disponibles = ?, geom = ? WHERE id_unidad = ?";
-    private static final String SQL_READ = "SELECT * FROM camiones WHERE id_unidad = ?";
-    private static final String SQL_READALL = "SELECT * FROM camiones";
-    private static final String SQL_OBTENERCAMIONESDELARUTA = "SELECT * FROM camiones WHERE id_ruta = ?;";
-    private static final String SQL_OBTENERPUNTO = "SELECT ST_ASTEXT(GEOM) FROM camiones WHERE id_unidad = ?";
+    private static final String SQL_UPDATE = "UPDATE camiones SET id_ruta = ?, recorriendo = ?, capacidad_max = ?, asientos_disponibles = ?, geom = ? WHERE id_unidad = ?;";
+    private static final String SQL_OBTENERCAMION = "SELECT * FROM camiones WHERE id_unidad = ?;";
+    private static final String SQL_READALL = "SELECT * FROM camiones;";
+    private static final String SQL_OBTENERCAMIONES_DE_LA_RUTA_CON_DIRECCION = "SELECT * FROM camiones WHERE id_ruta = ? AND recorriendo = ?;";
+    private static final String SQL_OBTENER_PUNTO = "SELECT ST_ASTEXT(GEOM) FROM camiones WHERE id_unidad = ?;";
     private static final ConexionBD conexion = ConexionBD.connect();
 
     @Override
@@ -90,7 +90,7 @@ public class CamionDAO implements ConsultasBD<Camion> {
         ResultSet rs;
         Camion camion = null;
         try {
-            ps = conexion.getConexion().prepareStatement(SQL_READ);
+            ps = conexion.getConexion().prepareStatement(SQL_OBTENERCAMION);
             ps.setString(1, key.toString());
             rs = ps.executeQuery();
             while(rs.next()) {
@@ -123,16 +123,17 @@ public class CamionDAO implements ConsultasBD<Camion> {
         return camiones;
     }
 
-    public List<Camion> obtenerCamionesDeLaRuta(Object key) {
+    public List<Camion> obtenerCamionesDeLaRuta(Object key, String recorriendo) {
         PreparedStatement ps;
         ResultSet rs;
         ArrayList<Camion> camiones = new ArrayList<>();
         try {
-            ps = conexion.getConexion().prepareStatement(SQL_OBTENERCAMIONESDELARUTA);
+            ps = conexion.getConexion().prepareStatement(SQL_OBTENERCAMIONES_DE_LA_RUTA_CON_DIRECCION);
             ps.setString(1, key.toString());
+            ps.setString(2, recorriendo);
             rs = ps.executeQuery();
             while(rs.next()) {
-                camiones.add(new Camion(rs.getString(1), rs.getString(2), rs.getInt(3), rs.getInt(4), (PGgeometry)rs.getObject(5)));
+                camiones.add(new Camion(rs.getString("id_unidad"), rs.getString("id_ruta"), rs.getString("recorriendo"), rs.getInt("capacidad_max"), rs.getInt("asientos_disponibles"), (PGgeometry)rs.getObject("geom")));
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -147,7 +148,7 @@ public class CamionDAO implements ConsultasBD<Camion> {
         ResultSet rs;
         Point punto = null;
         try {
-            ps = conexion.getConexion().prepareStatement(SQL_OBTENERPUNTO);
+            ps = conexion.getConexion().prepareStatement(SQL_OBTENER_PUNTO);
             ps.setString(1, key.toString());
             rs = ps.executeQuery();
             while(rs.next()) {
