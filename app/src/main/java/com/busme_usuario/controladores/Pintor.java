@@ -3,7 +3,6 @@ package com.busme_usuario.controladores;
 import android.graphics.Color;
 import android.location.Location;
 import android.os.AsyncTask;
-import android.util.Log;
 
 import com.busme_usuario.R;
 import com.busme_usuario.fragments.BusMeUsuario;
@@ -21,6 +20,7 @@ import com.google.maps.android.PolyUtil;
 
 import org.postgis.Point;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class Pintor extends AsyncTask<String, String, Void> {
@@ -52,22 +52,42 @@ public class Pintor extends AsyncTask<String, String, Void> {
     }
 
     protected void onPostExecute(Void result) {
-        googleMap.clear();
+        //googleMap.clear();
+        limpiarElementosDelMapa();
         pintarUbicacionUsuario();
         mostrarCamiones();
         pintarRuta();
-        pintarMarcadorEnRuta();
-    }
-
-    private void pintarMarcadorEnRuta() {
-        if (BusMeUsuario.getMarcadorEnRuta() != null) {
-            googleMap.addMarker(new MarkerOptions()
-                    .position(BusMeUsuario.getMarcadorEnRuta().getPosition()));
+        if(BusMeUsuario.getMarcadorEnRuta() != null) {
+            pintarMarcadorEnRuta();
         }
     }
 
+    private void limpiarElementosDelMapa() {
+        if(BusMeUsuario.getLine() != null) {
+            BusMeUsuario.getLine().remove();
+        }
+        if(BusMeUsuario.getMarcadorUsuario() != null) {
+            BusMeUsuario.getMarcadorUsuario().remove();
+        }
+        if(BusMeUsuario.getMarcadorEnRuta() != null) {
+            BusMeUsuario.getMarcadorEnRuta().remove();
+        }
+        if(BusMeUsuario.getMarcadoresDeCamiones().size() > 0) {
+            for (Marker marcadorCamion:BusMeUsuario.getMarcadoresDeCamiones()) {
+                marcadorCamion.remove();
+            }
+            BusMeUsuario.setMarcadoresDeCamiones(new ArrayList<Marker>());
+            //BusMeUsuario.setMarcadoresDeCamiones(new ArrayList<Marker>());
+        }
+    }
+
+    private void pintarMarcadorEnRuta() {
+        Marker marcadorRuta = googleMap.addMarker(new MarkerOptions()
+                .position(BusMeUsuario.getMarcadorEnRuta().getPosition()));
+        BusMeUsuario.setMarcadorEnRuta(marcadorRuta);
+    }
+
     private void pintarRuta() {
-        //Log.i("DEBUG", "ENTRE A PINTAR");
         // Crear el objeto para agregar la polilinea
         PolylineOptions polylineOptions = new PolylineOptions();
         polylineOptions.color(Color.RED);
@@ -75,37 +95,35 @@ public class Pintor extends AsyncTask<String, String, Void> {
         polylineOptions.geodesic(true);
         // Agregar la polilinea decodificada con PolyUtil.decode()
         polylineOptions.addAll(PolyUtil.decode(encodedPolyline));
-        Polyline line = googleMap.addPolyline(polylineOptions);
-        line.setVisible(true);
-        line.setClickable(false);
-        BusMeUsuario.setLine(line);
+        Polyline linea = googleMap.addPolyline(polylineOptions);
+        linea.setVisible(true);
+        linea.setClickable(false);
+        BusMeUsuario.setLine(linea);
     }
 
     private void mostrarCamiones() {
-        Marker m[] = new Marker[camiones.size()];
         LatLng coordenadas;
         Point punto;
         for (int i = 0; i < camiones.size(); i++) {
             punto = (Point) camiones.get(i).getGeom().getGeometry();
             coordenadas = new LatLng(punto.x, punto.y);
-            googleMap.addMarker(new MarkerOptions()
+            Marker marcadorCamion = googleMap.addMarker(new MarkerOptions()
                     .position(coordenadas)
                     .title("camion")
                     .icon(BitmapDescriptorFactory.fromResource(R.mipmap.marcador_camion)));
+            BusMeUsuario.getMarcadoresDeCamiones().add(marcadorCamion);
         }
     }
 
     private void pintarUbicacionUsuario() {
-        // Se muestra la posicion
-        if (ubicacionUsuario != null) {
-            double latitud = ubicacionUsuario.getLatitude();
-            double longitud = ubicacionUsuario.getLongitude();
-            LatLng coordenadas = new LatLng(latitud, longitud);
-            googleMap.addMarker(new MarkerOptions()
-                    .position(coordenadas)
-                    .title("Yo")
-                    .icon(BitmapDescriptorFactory.fromResource(R.mipmap.iconito)));
-        }
+        double latitud = ubicacionUsuario.getLatitude();
+        double longitud = ubicacionUsuario.getLongitude();
+        LatLng coordenadas = new LatLng(latitud, longitud);
+        Marker marcadorUsuario = googleMap.addMarker(new MarkerOptions()
+                .position(coordenadas)
+                .title("Yo")
+                .icon(BitmapDescriptorFactory.fromResource(R.mipmap.iconito)));
+        BusMeUsuario.setMarcadorUsuario(marcadorUsuario);
     }
 
 }

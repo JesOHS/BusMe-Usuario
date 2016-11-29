@@ -19,8 +19,8 @@ import android.widget.Spinner;
 
 import com.busme_usuario.R;
 import com.busme_usuario.controladores.Pintor;
-import com.busme_usuario.interfaces.RetrofitMaps;
 import com.busme_usuario.modelos.DAO.RutaDAO;
+import com.busme_usuario.modelos.DTO.Camion;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.maps.CameraUpdate;
@@ -35,18 +35,12 @@ import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.busme_usuario.modelos.POJO.Example;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.maps.android.PolyUtil;
 
+import java.util.ArrayList;
 import java.util.List;
-
-import retrofit.Call;
-import retrofit.Callback;
-import retrofit.GsonConverterFactory;
-import retrofit.Response;
-import retrofit.Retrofit;
 
 public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback, Spinner.OnItemSelectedListener, LocationListener {
 
@@ -54,10 +48,12 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
     GoogleMap mMap;
     LocationManager locationManager;
     Spinner spinner;
-    private static Location ubicacionCamion;
-    private static Location ubicacionEstacion;
+    private Location ubicacionCamion;
+    private Location ubicacionEstacion;
     private static Marker marcadorEnRuta;
     private static Polyline line;
+    private static Marker marcadorUsuario;
+    private static List<Marker> marcadoresDeCamiones;
     Switch switchRuta;
     String recorriendo;
     TextView txtTiempoEstimado;
@@ -68,6 +64,7 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
         recorriendo = "polilinea1";
         ubicacionCamion = new Location("");
         ubicacionEstacion = new Location("");
+        marcadoresDeCamiones = new ArrayList<>();
         setContentView(R.layout.activity_bus_me_usuario);
         //show error dialog if Google Play Services not available
         if (!isGooglePlayServicesAvailable()) {
@@ -348,6 +345,10 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
 
     }
 
+    public static Polyline getLine() {
+        return line;
+    }
+
     public static void setLine(Polyline line) {
         BusMeUsuario.line = line;
     }
@@ -358,5 +359,21 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
 
     public static void setMarcadorEnRuta(Marker marcadorEnRuta) {
         BusMeUsuario.marcadorEnRuta = marcadorEnRuta;
+    }
+
+    public static Marker getMarcadorUsuario() {
+        return marcadorUsuario;
+    }
+
+    public static void setMarcadorUsuario(Marker marcadorUsuario) {
+        BusMeUsuario.marcadorUsuario = marcadorUsuario;
+    }
+
+    public static List<Marker> getMarcadoresDeCamiones() {
+        return marcadoresDeCamiones;
+    }
+
+    public static void setMarcadoresDeCamiones(List<Marker> marcadoresDeCamiones) {
+        BusMeUsuario.marcadoresDeCamiones = marcadoresDeCamiones;
     }
 }
