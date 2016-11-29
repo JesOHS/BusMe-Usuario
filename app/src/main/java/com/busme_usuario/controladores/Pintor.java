@@ -55,10 +55,18 @@ public class Pintor extends AsyncTask<String, String, Void> {
         googleMap.clear();
         pintarUbicacionUsuario();
         mostrarCamiones();
-        dibujarRuta();
+        pintarRuta();
+        pintarMarcadorEnRuta();
     }
 
-    private void dibujarRuta() {
+    private void pintarMarcadorEnRuta() {
+        if (BusMeUsuario.getMarcadorEnRuta() != null) {
+            googleMap.addMarker(new MarkerOptions()
+                    .position(BusMeUsuario.getMarcadorEnRuta().getPosition()));
+        }
+    }
+
+    private void pintarRuta() {
         //Log.i("DEBUG", "ENTRE A PINTAR");
         // Crear el objeto para agregar la polilinea
         PolylineOptions polylineOptions = new PolylineOptions();
@@ -82,6 +90,7 @@ public class Pintor extends AsyncTask<String, String, Void> {
             coordenadas = new LatLng(punto.x, punto.y);
             googleMap.addMarker(new MarkerOptions()
                     .position(coordenadas)
+                    .title("camion")
                     .icon(BitmapDescriptorFactory.fromResource(R.mipmap.marcador_camion)));
         }
     }

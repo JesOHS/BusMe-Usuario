@@ -32,6 +32,7 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 
 import android.widget.Switch;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.busme_usuario.modelos.POJO.Example;
@@ -51,21 +52,22 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
 
     static final int MY_PERMISSIONS_REQUEST_LOCATION = 99;
     GoogleMap mMap;
-    Marker marcadorUsuario;
-    Marker marcadorEnRuta;
     LocationManager locationManager;
     Spinner spinner;
-    LatLng origin;
-    LatLng dest;
-    Switch switchRuta;
-    int actualizacion = 0;
-    String recorriendo;
+    private static Location ubicacionCamion;
+    private static Location ubicacionEstacion;
+    private static Marker marcadorEnRuta;
     private static Polyline line;
+    Switch switchRuta;
+    String recorriendo;
+    TextView txtTiempoEstimado;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         recorriendo = "polilinea1";
+        ubicacionCamion = new Location("");
+        ubicacionEstacion = new Location("");
         setContentView(R.layout.activity_bus_me_usuario);
         //show error dialog if Google Play Services not available
         if (!isGooglePlayServicesAvailable()) {
@@ -85,6 +87,7 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
         spinner = (Spinner) findViewById(R.id.spinnerRutas);
         cargarRutasEnSpinner();
         spinner.setOnItemSelectedListener(this);
+        txtTiempoEstimado = (TextView) findViewById(R.id.txtTiempoEstimado);
     }
 
     @Override
@@ -99,30 +102,47 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if(isChecked){
                     recorriendo = "polilinea2";
-
                 }else{
                     recorriendo = "polilinea1";
+                }
+                if(marcadorEnRuta != null) {
+                    marcadorEnRuta.remove();
                 }
             }
         });
         // Se muestra la ubicacion en el mapa
         new Pintor(mMap, id_ruta, ubicacionUsuario, recorriendo).execute();
-        double latitud = ubicacionUsuario.getLatitude();
-        double longitud = ubicacionUsuario.getLongitude();
-        /*
-        Se obtienen las coordenadas para hacer zoom a la posicion del usuario
-        en el mapa
-        */
-        LatLng coordenadas = new LatLng(latitud, longitud);
-        // Define en donde va a hacer zoom y a que nivel
-        CameraUpdate actualizacionDeCamara = CameraUpdateFactory.newLatLngZoom(coordenadas, 16);
-        // Se hace el zoom en el mapa
-        mMap.animateCamera(actualizacionDeCamara);
+        // Hacer zoom en la ubicacion
+        enfocarEnUbicacion(ubicacionUsuario);
 
         /*
         Evento que se llama cuando se le da click al mapa,
         para agregar un marcador
          */
+
+        mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
+            @Override
+            public boolean onMarkerClick(Marker marker) {
+                String advertencia = "";
+                if(marcadorEnRuta != null) {
+                    if(!marker.getPosition().equals(marcadorEnRuta.getPosition())) {
+                        // Obtener la ubicacion del camion
+                        ubicacionCamion.setLatitude(marker.getPosition().latitude);
+                        ubicacionCamion.setLongitude(marker.getPosition().longitude);
+                        // Obtener la ubicacion del punto seleccionado en la ruta
+                        ubicacionEstacion.setLatitude(marcadorEnRuta.getPosition().latitude);
+                        ubicacionEstacion.setLongitude(marcadorEnRuta.getPosition().longitude);
+                        estimarTiempoLlegadaCamion();
+                        return false;
+                    }
+                    advertencia = "Selecciona un camion";
+                } else {
+                    advertencia = "Selecciona un punto en la ruta";
+                }
+                Toast.makeText(getApplicationContext(), advertencia, Toast.LENGTH_SHORT).show();
+                return false;
+            }
+        });
 
         mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
 
@@ -143,52 +163,54 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
                         marcadorEnRuta.remove();
                     }
                     marcadorEnRuta = mMap.addMarker(new MarkerOptions()
+                            .title("Parada")
                             .position(point));
                 }
             }
         });
 
-        /*Button btnDriving = (Button) findViewById(R.id.btnCalcularTiempo);
-        btnDriving.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                build_retrofit_and_get_response("driving");
-            }
-        });*/
     }
 
-    private void build_retrofit_and_get_response(String type) {
-        String url = "https://maps.googleapis.com/maps/";
-        Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl(url)
-                .addConverterFactory(GsonConverterFactory.create())
-                .build();
-        RetrofitMaps service = retrofit.create(RetrofitMaps.class);
-        Call<Example> call = service.getDistanceDuration("metric", origin.latitude + "," + origin.longitude, dest.latitude + "," + dest.longitude, type);
-        call.enqueue(new Callback<Example>() {
-
-            @Override
-            public void onResponse(Response<Example> response, Retrofit retrofit) {
-                try {
-                    // This loop will go through all the results and add marker on each location.
-                    for (int i = 0; i < response.body().getRoutes().size(); i++) {
-                        String distance = response.body().getRoutes().get(i).getLegs().get(i).getDistance().getText();
-                        String time = response.body().getRoutes().get(i).getLegs().get(i).getDuration().getText();
-                        //ShowDistanceDuration.setText("Distance:" + distance + ", Duration:" + time);
-                        Toast.makeText(getApplicationContext(), "Tiempo: " + time, Toast.LENGTH_SHORT).show();
-                    }
-                } catch (Exception e) {
-                    Log.d("onResponse", "There is an error");
-                    e.printStackTrace();
+    private void estimarTiempoLlegadaCamion(){
+        /*
+         Conseguir la distancia entre los dos puntos en metros
+         y convertirla a kilometros
+        */
+        if(marcadorEnRuta != null && ubicacionCamion != null) {
+            double distanciaEnKilometros = ubicacionEstacion.distanceTo(ubicacionCamion) / 1000;
+            if(distanciaEnKilometros <= 0.3) {
+                Toast.makeText(getApplicationContext(), "El camion está por llegar", Toast.LENGTH_SHORT).show();
+                txtTiempoEstimado.setVisibility(View.INVISIBLE);
+            } else {
+                int tolerancia = 0;
+                int LIMITE_DE_VELOCIDAD = 50; // 50 km/s por reglamento
+                // Se estima un error o tolerancia en minutos dependiendo de la distancia
+                if(distanciaEnKilometros <= 0.7) {
+                    tolerancia = 3;
+                } else if(distanciaEnKilometros > 0.7 && distanciaEnKilometros <= 1.5) {
+                    tolerancia = 6;
+                } else if(distanciaEnKilometros > 1.5 && distanciaEnKilometros <= 2.6) {
+                    tolerancia = 10;
+                } else if(distanciaEnKilometros > 2.6 && distanciaEnKilometros <= 5) {
+                    tolerancia = 13;
+                } else if(distanciaEnKilometros > 5 && distanciaEnKilometros <= 8) {
+                    tolerancia = 20;
+                } else if(distanciaEnKilometros > 8 && distanciaEnKilometros <= 12) {
+                    tolerancia = 33;
+                } else if(distanciaEnKilometros > 12 && distanciaEnKilometros <= 19) {
+                    tolerancia = 36;
+                } else {
+                    tolerancia = 40;
                 }
+                // El tiempo se calcula en horas, por lo que se convierte a minutos y se aplica una tolerancia
+                int tiempoDeLlegadaEstimado = (int) Math.ceil((distanciaEnKilometros / LIMITE_DE_VELOCIDAD) * 60) + tolerancia;
+                Log.d("DEBUG", "Distancia " + ubicacionEstacion.distanceTo(ubicacionCamion));
+                Log.d("DEBUG", "Tiempo: " + tiempoDeLlegadaEstimado);
+                txtTiempoEstimado.setVisibility(View.VISIBLE);
+                txtTiempoEstimado.setText("Tiempo de llegada: " + String.valueOf(tiempoDeLlegadaEstimado) + " minutos");
             }
 
-            @Override
-            public void onFailure(Throwable t) {
-                Log.d("onFailure", t.toString());
-            }
-        });
-
+        }
     }
 
     private Location obtenerUbicacionUsuario() {
@@ -264,8 +286,20 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
         String id_ruta = spinner.getSelectedItem().toString();
         Location ubicacionUsuario = obtenerUbicacionUsuario();
         new Pintor(mMap, id_ruta, ubicacionUsuario, recorriendo).execute();
-        actualizacion++;
-        Log.i("DEBUG", "Actualizacion #" + actualizacion);
+        estimarTiempoLlegadaCamion();
+    }
+
+    private void enfocarEnUbicacion(Location ubicacion) {
+        double latitud = ubicacion.getLatitude();
+        double longitud = ubicacion.getLongitude();
+        /*
+        Se obtienen las coordenadas para hacer zoom a la posicion en el mapa
+        */
+        LatLng coordenadas = new LatLng(latitud, longitud);
+        // Define en donde va a hacer zoom y a que nivel
+        CameraUpdate actualizacionDeCamara = CameraUpdateFactory.newLatLngZoom(coordenadas, 16);
+        // Se hace el zoom en el mapa
+        mMap.animateCamera(actualizacionDeCamara);
     }
 
     // Se ejecuta cuando se selecciona una ruta del spinner
@@ -316,5 +350,13 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
 
     public static void setLine(Polyline line) {
         BusMeUsuario.line = line;
+    }
+
+    public static Marker getMarcadorEnRuta() {
+        return marcadorEnRuta;
+    }
+
+    public static void setMarcadorEnRuta(Marker marcadorEnRuta) {
+        BusMeUsuario.marcadorEnRuta = marcadorEnRuta;
     }
 }
