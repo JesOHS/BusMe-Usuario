@@ -115,10 +115,27 @@ public class Pintor extends AsyncTask<String, String, Void> {
         for (int i = 0; i < camiones.size(); i++) {
             punto = (Point) camiones.get(i).getGeom().getGeometry();
             coordenadas = new LatLng(punto.x, punto.y);
-            Marker marcadorCamion = googleMap.addMarker(new MarkerOptions()
-                    .position(coordenadas)
-                    .title("Camion")
-                    .icon(BitmapDescriptorFactory.fromResource(R.mipmap.marcador_camion)));
+            int asientos = camiones.get(i).getAsientosDisponibles();
+            Marker marcadorCamion = null;
+            if(asientos >= 40){
+                marcadorCamion = googleMap.addMarker(new MarkerOptions()
+                        .position(coordenadas)
+                        .title("Camion")
+                        .icon(BitmapDescriptorFactory.fromResource(R.mipmap.marcador_camion)));
+            }
+            else if(asientos >= 30){
+                marcadorCamion = googleMap.addMarker(new MarkerOptions()
+                        .position(coordenadas)
+                        .title("Camion")
+                        .icon(BitmapDescriptorFactory.fromResource(R.mipmap.icono_amarillo)));
+            }
+            else{
+                marcadorCamion = googleMap.addMarker(new MarkerOptions()
+                        .position(coordenadas)
+                        .title("Camion")
+                        .icon(BitmapDescriptorFactory.fromResource(R.mipmap.ic_launcher)));
+            }
+
             BusMeUsuario.getMarcadoresDeCamiones().add(marcadorCamion);
         }
     }
