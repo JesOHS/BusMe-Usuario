@@ -31,13 +31,15 @@ public class Pintor extends AsyncTask<String, String, Void> {
     private String id_ruta;
     private Location ubicacionUsuario;
     private String recorriendo;
+    String color;
 
 
-    public Pintor(GoogleMap googleMap, String id_ruta, Location ubicacionUsuario, String recorriendo) {
+    public Pintor(GoogleMap googleMap, String id_ruta, Location ubicacionUsuario, String recorriendo,String color) {
         this.id_ruta = id_ruta;
         this.googleMap = googleMap;
         this.ubicacionUsuario = ubicacionUsuario;
         this.recorriendo = recorriendo;
+        this.color = color;
     }
 
     @Override
@@ -91,7 +93,12 @@ public class Pintor extends AsyncTask<String, String, Void> {
     private void pintarRuta() {
         // Crear el objeto para agregar la polilinea
         PolylineOptions polylineOptions = new PolylineOptions();
-        polylineOptions.color(Color.RED);
+        if (color=="rojo"){
+            polylineOptions.color(Color.RED);
+
+        }else if(color=="azul"){
+            polylineOptions.color(Color.BLUE);
+        }
         polylineOptions.width(20);
         polylineOptions.geodesic(true);
         // Agregar la polilinea decodificada con PolyUtil.decode()

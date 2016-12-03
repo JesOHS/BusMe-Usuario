@@ -59,6 +59,7 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
     TextView txtTiempoEstimado;
     private boolean estimandoLlegadaCamion;
     String TAG = "DEBUG";
+    String color = "rojo";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -102,8 +103,10 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (isChecked) {
                     recorriendo = "polilinea2";
+                    color = "azul";
                 } else {
                     recorriendo = "polilinea1";
+                    color = "rojo";
                 }
                 if (marcadorEnRuta != null) {
                     marcadorEnRuta.remove();
@@ -115,7 +118,7 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
             }
         });
         // Se muestra la ubicacion en el mapa
-        new Pintor(mMap, id_ruta, ubicacionUsuario, recorriendo).execute();
+        new Pintor(mMap, id_ruta, ubicacionUsuario, recorriendo, color).execute();
         // Hacer zoom en la ubicacion
         enfocarEnUbicacion(ubicacionUsuario);
 
@@ -307,7 +310,7 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
     private void actualizarMapa() {
         String id_ruta = spinner.getSelectedItem().toString();
         Location ubicacionUsuario = obtenerUbicacionUsuario();
-        new Pintor(mMap, id_ruta, ubicacionUsuario, recorriendo).execute();
+        new Pintor(mMap, id_ruta, ubicacionUsuario, recorriendo, color).execute();
         if (estimandoLlegadaCamion) {
             estimarTiempoLlegadaCamion();
         }
@@ -348,6 +351,24 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
         super.onPause();
         if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             revisarPermisoDeUbicacion();
+        }
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this,
+                    android.Manifest.permission.ACCESS_FINE_LOCATION)) {
+                // Show an explanation to the user *asynchronously* -- don't block
+                // this thread waiting for the user's response! After the user
+                // sees the explanation, try again to request the permission.
+
+                //Prompt the user once explanation has been shown
+                ActivityCompat.requestPermissions(this,
+                        new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION},
+                        MY_PERMISSIONS_REQUEST_LOCATION);
+            } else {
+                // No explanation needed, we can request the permission.
+                ActivityCompat.requestPermissions(this,
+                        new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION},
+                        MY_PERMISSIONS_REQUEST_LOCATION);
+            }
         }
         locationManager.removeUpdates(this);
     }
