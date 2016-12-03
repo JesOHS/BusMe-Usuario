@@ -3,7 +3,6 @@ package com.busme_usuario.controladores;
 import android.graphics.Color;
 import android.location.Location;
 import android.os.AsyncTask;
-import android.util.Log;
 
 import com.busme_usuario.R;
 import com.busme_usuario.fragments.BusMeUsuario;
@@ -21,33 +20,24 @@ import com.google.maps.android.PolyUtil;
 
 import org.postgis.Point;
 
+import java.util.ArrayList;
 import java.util.List;
 
-public class Pintor extends AsyncTask<String, String, Void> implements GoogleMap.OnPolylineClickListener {
+public class Pintor extends AsyncTask<String, String, Void> {
 
     List<Camion> camiones;
     String encodedPolyline;
     private GoogleMap googleMap;
-    private Marker marcadorUsuario;
     private String id_ruta;
-    static private Polyline line;
     private Location ubicacionUsuario;
-    boolean polilinea1;
     private String recorriendo;
 
 
-    public Pintor(GoogleMap googleMap, String id_ruta, Marker marcadorUsuario, Polyline line, Location ubicacionUsuario, boolean polilinea1) {
+    public Pintor(GoogleMap googleMap, String id_ruta, Location ubicacionUsuario, String recorriendo) {
         this.id_ruta = id_ruta;
         this.googleMap = googleMap;
-        this.marcadorUsuario = marcadorUsuario;
-        this.line = line;
         this.ubicacionUsuario = ubicacionUsuario;
-        this.polilinea1 = polilinea1;
-        if(polilinea1) {
-            recorriendo = "polilinea1";
-        } else {
-            recorriendo = "polilinea2";
-        }
+        this.recorriendo = recorriendo;
     }
 
     @Override
@@ -55,20 +45,50 @@ public class Pintor extends AsyncTask<String, String, Void> implements GoogleMap
         RutaDAO rutaDAO = new RutaDAO();
         CamionDAO camionDAO = new CamionDAO();
         // Obtener la polilinea codificada de la bd
-        encodedPolyline = rutaDAO.obtenerPolilinea(id_ruta, polilinea1);
+        encodedPolyline = rutaDAO.obtenerPolilinea(id_ruta, recorriendo);
         // Obtener camiones de la ruta seleccionada
         camiones = camionDAO.obtenerCamionesDeLaRuta(id_ruta, recorriendo);
         return null;
     }
 
     protected void onPostExecute(Void result) {
-        googleMap.clear();
+        //googleMap.clear();
+        limpiarElementosDelMapa();
         pintarUbicacionUsuario();
         mostrarCamiones();
-        dibujarRuta();
+        pintarRuta();
+        if(BusMeUsuario.getMarcadorEnRuta() != null) {
+            pintarMarcadorEnRuta();
+        }
     }
 
-    private void dibujarRuta() {
+    private void limpiarElementosDelMapa() {
+        if(BusMeUsuario.getLine() != null) {
+            BusMeUsuario.getLine().remove();
+        }
+        if(BusMeUsuario.getMarcadorUsuario() != null) {
+            BusMeUsuario.getMarcadorUsuario().remove();
+        }
+        if(BusMeUsuario.getMarcadorEnRuta() != null) {
+            BusMeUsuario.getMarcadorEnRuta().remove();
+        }
+        if(BusMeUsuario.getMarcadoresDeCamiones().size() > 0) {
+            for (Marker marcadorCamion:BusMeUsuario.getMarcadoresDeCamiones()) {
+                marcadorCamion.remove();
+            }
+            BusMeUsuario.setMarcadoresDeCamiones(new ArrayList<Marker>());
+            //BusMeUsuario.setMarcadoresDeCamiones(new ArrayList<Marker>());
+        }
+    }
+
+    private void pintarMarcadorEnRuta() {
+        Marker marcadorRuta = googleMap.addMarker(new MarkerOptions()
+                .position(BusMeUsuario.getMarcadorEnRuta().getPosition())
+                .title("Parada"));
+        BusMeUsuario.setMarcadorEnRuta(marcadorRuta);
+    }
+
+    private void pintarRuta() {
         // Crear el objeto para agregar la polilinea
         PolylineOptions polylineOptions = new PolylineOptions();
         polylineOptions.color(Color.RED);
@@ -76,43 +96,35 @@ public class Pintor extends AsyncTask<String, String, Void> implements GoogleMap
         polylineOptions.geodesic(true);
         // Agregar la polilinea decodificada con PolyUtil.decode()
         polylineOptions.addAll(PolyUtil.decode(encodedPolyline));
-        if(line != null) {
-            line.remove();
-        }
-        line = googleMap.addPolyline(polylineOptions);
-        line.setVisible(true);
-        line.setClickable(false);
-        BusMeUsuario.setLine(line);
+        Polyline linea = googleMap.addPolyline(polylineOptions);
+        linea.setVisible(true);
+        linea.setClickable(false);
+        BusMeUsuario.setLine(linea);
     }
 
     private void mostrarCamiones() {
-        Marker m[] = new Marker[camiones.size()];
         LatLng coordenadas;
         Point punto;
         for (int i = 0; i < camiones.size(); i++) {
             punto = (Point) camiones.get(i).getGeom().getGeometry();
             coordenadas = new LatLng(punto.x, punto.y);
-            googleMap.addMarker(new MarkerOptions()
+            Marker marcadorCamion = googleMap.addMarker(new MarkerOptions()
                     .position(coordenadas)
+                    .title("Camion")
                     .icon(BitmapDescriptorFactory.fromResource(R.mipmap.marcador_camion)));
+            BusMeUsuario.getMarcadoresDeCamiones().add(marcadorCamion);
         }
     }
 
     private void pintarUbicacionUsuario() {
-        // Se muestra la posicion
-        if (ubicacionUsuario != null) {
-            double latitud = ubicacionUsuario.getLatitude();
-            double longitud = ubicacionUsuario.getLongitude();
-            LatLng coordenadas = new LatLng(latitud, longitud);
-            googleMap.addMarker(new MarkerOptions()
-                    .position(coordenadas)
-                    .title("Yo")
-                    .icon(BitmapDescriptorFactory.fromResource(R.mipmap.iconito)));
-        }
+        double latitud = ubicacionUsuario.getLatitude();
+        double longitud = ubicacionUsuario.getLongitude();
+        LatLng coordenadas = new LatLng(latitud, longitud);
+        Marker marcadorUsuario = googleMap.addMarker(new MarkerOptions()
+                .position(coordenadas)
+                .title("Yo")
+                .icon(BitmapDescriptorFactory.fromResource(R.mipmap.iconito)));
+        BusMeUsuario.setMarcadorUsuario(marcadorUsuario);
     }
 
-    @Override
-    public void onPolylineClick(Polyline polyline) {
-        Log.i("DEBUG", "Polilinea click evento");
-    }
 }

@@ -27,7 +27,20 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_below="@+id/spinnerRutas"
-        android:text="Cambiar sentido de la ruta " />
+        android:textColor="@android:color/black"
+        android:text="Cambiar sentido de la ruta"
+        android:theme="@android:style/Theme.Material"/>
 
+    <TextView
+        android:text="TextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/switchRuta"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="14dp"
+        android:textSize="18dp"
+        android:textColor="@android:color/black"
+        android:visibility="invisible"
+        android:id="@+id/txtTiempoEstimado" />
 
 </RelativeLayout>
