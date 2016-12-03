@@ -83,7 +83,8 @@ public class Pintor extends AsyncTask<String, String, Void> {
 
     private void pintarMarcadorEnRuta() {
         Marker marcadorRuta = googleMap.addMarker(new MarkerOptions()
-                .position(BusMeUsuario.getMarcadorEnRuta().getPosition()));
+                .position(BusMeUsuario.getMarcadorEnRuta().getPosition())
+                .title("Parada"));
         BusMeUsuario.setMarcadorEnRuta(marcadorRuta);
     }
 
@@ -109,7 +110,7 @@ public class Pintor extends AsyncTask<String, String, Void> {
             coordenadas = new LatLng(punto.x, punto.y);
             Marker marcadorCamion = googleMap.addMarker(new MarkerOptions()
                     .position(coordenadas)
-                    .title("camion")
+                    .title("Camion")
                     .icon(BitmapDescriptorFactory.fromResource(R.mipmap.marcador_camion)));
             BusMeUsuario.getMarcadoresDeCamiones().add(marcadorCamion);
         }

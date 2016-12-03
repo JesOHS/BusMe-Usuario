@@ -1,5 +1,6 @@
 package com.busme_usuario.fragments;
 
+import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.location.Location;
@@ -20,7 +21,6 @@ import android.widget.Spinner;
 import com.busme_usuario.R;
 import com.busme_usuario.controladores.Pintor;
 import com.busme_usuario.modelos.DAO.RutaDAO;
-import com.busme_usuario.modelos.DTO.Camion;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.maps.CameraUpdate;
@@ -57,6 +57,8 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
     Switch switchRuta;
     String recorriendo;
     TextView txtTiempoEstimado;
+    private boolean estimandoLlegadaCamion;
+    String TAG = "DEBUG";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -65,6 +67,7 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
         ubicacionCamion = new Location("");
         ubicacionEstacion = new Location("");
         marcadoresDeCamiones = new ArrayList<>();
+        estimandoLlegadaCamion = false;
         setContentView(R.layout.activity_bus_me_usuario);
         //show error dialog if Google Play Services not available
         if (!isGooglePlayServicesAvailable()) {
@@ -73,7 +76,7 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
         } else {
             Log.d("onCreate", "Google Play Services available. Continuing.");
         }
-        checkLocationPermission();
+        revisarPermisoDeUbicacion();
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         configurarActualizacionesDePosicion();
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
@@ -97,14 +100,18 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
         switchRuta.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if(isChecked){
+                if (isChecked) {
                     recorriendo = "polilinea2";
-                }else{
+                } else {
                     recorriendo = "polilinea1";
                 }
-                if(marcadorEnRuta != null) {
+                if (marcadorEnRuta != null) {
                     marcadorEnRuta.remove();
+                    marcadorEnRuta = null;
                 }
+                // Se necesita quitar el texto si esta visible, y detener lo de estimando
+                txtTiempoEstimado.setVisibility(View.INVISIBLE);
+                estimandoLlegadaCamion = false;
             }
         });
         // Se muestra la ubicacion en el mapa
@@ -121,8 +128,9 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
             @Override
             public boolean onMarkerClick(Marker marker) {
                 String advertencia = "";
-                if(marcadorEnRuta != null) {
-                    if(!marker.getPosition().equals(marcadorEnRuta.getPosition())) {
+                if (marcadorEnRuta != null) {
+                    if (marker.getTitle().equals("Camion")) {
+                        estimandoLlegadaCamion = true;
                         // Obtener la ubicacion del camion
                         ubicacionCamion.setLatitude(marker.getPosition().latitude);
                         ubicacionCamion.setLongitude(marker.getPosition().longitude);
@@ -131,11 +139,14 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
                         ubicacionEstacion.setLongitude(marcadorEnRuta.getPosition().longitude);
                         estimarTiempoLlegadaCamion();
                         return false;
+                    } else {
+                        advertencia = "Selecciona un camion";
                     }
-                    advertencia = "Selecciona un camion";
                 } else {
                     advertencia = "Selecciona un punto en la ruta";
                 }
+                txtTiempoEstimado.setVisibility(View.INVISIBLE);
+                estimandoLlegadaCamion = false;
                 Toast.makeText(getApplicationContext(), advertencia, Toast.LENGTH_SHORT).show();
                 return false;
             }
@@ -148,15 +159,18 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
                 float zoom = mMap.getCameraPosition().zoom;
                 int tolerancia = 10;
                 // Dependiendo del zoom se ajusta el nivel de tolerancia de eror
-                if(zoom >= 10 && zoom <= 15) {
+                if (zoom >= 10 && zoom <= 13) {
+                    tolerancia = 70;
+                } else if (zoom > 13 && zoom <= 15) {
                     tolerancia = 50;
-                } else if(zoom > 15 && zoom <= 17){
+                } else if (zoom > 15 && zoom <= 17) {
                     tolerancia = 30;
-                } else  if (zoom > 17){
+                } else if (zoom > 17) {
                     tolerancia = 15;
                 }
-                if(PolyUtil.isLocationOnPath(point, line.getPoints(), true, tolerancia)) {
-                    if(marcadorEnRuta != null) {
+                // Si el punto se encuentra cerca de la ruta
+                if (PolyUtil.isLocationOnPath(point, line.getPoints(), true, tolerancia)) {
+                    if (marcadorEnRuta != null) {
                         marcadorEnRuta.remove();
                     }
                     marcadorEnRuta = mMap.addMarker(new MarkerOptions()
@@ -168,41 +182,42 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
 
     }
 
-    private void estimarTiempoLlegadaCamion(){
+    private void estimarTiempoLlegadaCamion() {
         /*
          Conseguir la distancia entre los dos puntos en metros
          y convertirla a kilometros
         */
-        if(marcadorEnRuta != null && ubicacionCamion != null) {
+        if (marcadorEnRuta != null && ubicacionCamion != null) {
             double distanciaEnKilometros = ubicacionEstacion.distanceTo(ubicacionCamion) / 1000;
-            if(distanciaEnKilometros <= 0.3) {
+            if (distanciaEnKilometros <= 0.3) {
                 Toast.makeText(getApplicationContext(), "El camion está por llegar", Toast.LENGTH_SHORT).show();
                 txtTiempoEstimado.setVisibility(View.INVISIBLE);
             } else {
                 int tolerancia = 0;
                 int LIMITE_DE_VELOCIDAD = 50; // 50 km/s por reglamento
                 // Se estima un error o tolerancia en minutos dependiendo de la distancia
-                if(distanciaEnKilometros <= 0.7) {
+                if (distanciaEnKilometros <= 0.7) {
                     tolerancia = 3;
-                } else if(distanciaEnKilometros > 0.7 && distanciaEnKilometros <= 1.5) {
+                } else if (distanciaEnKilometros > 0.7 && distanciaEnKilometros <= 1.5) {
                     tolerancia = 6;
-                } else if(distanciaEnKilometros > 1.5 && distanciaEnKilometros <= 2.6) {
+                } else if (distanciaEnKilometros > 1.5 && distanciaEnKilometros <= 2.6) {
                     tolerancia = 10;
-                } else if(distanciaEnKilometros > 2.6 && distanciaEnKilometros <= 5) {
+                } else if (distanciaEnKilometros > 2.6 && distanciaEnKilometros <= 5) {
                     tolerancia = 13;
-                } else if(distanciaEnKilometros > 5 && distanciaEnKilometros <= 8) {
+                } else if (distanciaEnKilometros > 5 && distanciaEnKilometros <= 8) {
                     tolerancia = 20;
-                } else if(distanciaEnKilometros > 8 && distanciaEnKilometros <= 12) {
+                } else if (distanciaEnKilometros > 8 && distanciaEnKilometros <= 12) {
                     tolerancia = 33;
-                } else if(distanciaEnKilometros > 12 && distanciaEnKilometros <= 19) {
+                } else if (distanciaEnKilometros > 12 && distanciaEnKilometros <= 19) {
                     tolerancia = 36;
                 } else {
                     tolerancia = 40;
                 }
                 // El tiempo se calcula en horas, por lo que se convierte a minutos y se aplica una tolerancia
                 int tiempoDeLlegadaEstimado = (int) Math.ceil((distanciaEnKilometros / LIMITE_DE_VELOCIDAD) * 60) + tolerancia;
-                Log.d("DEBUG", "Distancia " + ubicacionEstacion.distanceTo(ubicacionCamion));
+                /*Log.d("DEBUG", "Distancia " + ubicacionEstacion.distanceTo(ubicacionCamion));
                 Log.d("DEBUG", "Tiempo: " + tiempoDeLlegadaEstimado);
+                */
                 txtTiempoEstimado.setVisibility(View.VISIBLE);
                 txtTiempoEstimado.setText("Tiempo de llegada: " + String.valueOf(tiempoDeLlegadaEstimado) + " minutos");
             }
@@ -232,7 +247,7 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
         return true;
     }
 
-    public boolean checkLocationPermission() {
+    public boolean revisarPermisoDeUbicacion() {
         if (ContextCompat.checkSelfPermission(this,
                 android.Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
@@ -262,7 +277,17 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
 
     public void configurarActualizacionesDePosicion() {
         if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            checkLocationPermission();
+            revisarPermisoDeUbicacion();
+        }
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return;
         }
         // Se configuran las actualizaciones de posiciones a cada 5segundos o 1 metro
         locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 2000, 0, this);
@@ -283,7 +308,9 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
         String id_ruta = spinner.getSelectedItem().toString();
         Location ubicacionUsuario = obtenerUbicacionUsuario();
         new Pintor(mMap, id_ruta, ubicacionUsuario, recorriendo).execute();
-        estimarTiempoLlegadaCamion();
+        if (estimandoLlegadaCamion) {
+            estimarTiempoLlegadaCamion();
+        }
     }
 
     private void enfocarEnUbicacion(Location ubicacion) {
@@ -320,7 +347,7 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
     public void onPause() {
         super.onPause();
         if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            checkLocationPermission();
+            revisarPermisoDeUbicacion();
         }
         locationManager.removeUpdates(this);
     }

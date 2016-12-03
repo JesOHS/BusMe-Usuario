@@ -1,7 +1,5 @@
 package com.busme_usuario.modelos.DTO;
 
-import org.postgis.PGgeometry;
-
 public class Ruta {
     String idRuta;
     String polilinea;
