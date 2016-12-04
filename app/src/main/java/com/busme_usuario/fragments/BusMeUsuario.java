@@ -3,6 +3,7 @@ package com.busme_usuario.fragments;
 import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -223,6 +224,7 @@ public class BusMeUsuario extends FragmentActivity implements OnMapReadyCallback
                 */
                 txtTiempoEstimado.setVisibility(View.VISIBLE);
                 txtTiempoEstimado.setText("Tiempo de llegada: " + String.valueOf(tiempoDeLlegadaEstimado) + " minutos");
+                txtTiempoEstimado.setBackgroundColor(Color.WHITE);
             }
 
         }
